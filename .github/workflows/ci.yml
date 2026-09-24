@@ -5,26 +5,86 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # On pull requests only packages changed since the base (and their dependents) run.
+  AFFECTED: ${{ github.event_name == 'pull_request' && '--affected' || '' }}
+  TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
+
 jobs:
-  js:
-    name: Lint, types, tests, build
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version-file: package.json
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run lint check-types test build
+          fetch-depth: 0
+          filter: blob:none
+      - uses: ./.github/actions/setup
+      - run: pnpm turbo run lint $AFFECTED
 
-  rust:
-    name: Tauri (clippy, tests)
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+      - uses: ./.github/actions/setup
+      - run: pnpm turbo run check-types $AFFECTED
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+      - uses: ./.github/actions/setup
+      - run: pnpm turbo run test $AFFECTED
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+      - uses: ./.github/actions/setup
+      - run: pnpm turbo run build $AFFECTED
+
+  changes:
+    name: Detect Tauri changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      tauri: ${{ github.event_name == 'push' || steps.filter.outputs.tauri }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            tauri:
+              - apps/desktop/src-tauri/**
+              - .github/workflows/ci.yml
+
+  tauri:
+    name: Tauri (fmt, clippy, tests)
+    needs: changes
+    if: needs.changes.outputs.tauri == 'true'
     runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: apps/desktop/src-tauri
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -33,14 +93,12 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: apps/desktop/src-tauri
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: package.json
-          cache: pnpm
-      # tauri::generate_context! embeds frontendDist, so the frontend must exist
-      - run: pnpm install --frozen-lockfile && pnpm --filter desktop build
-        working-directory: .
+      - uses: ./.github/actions/setup
+      # tauri::generate_context! embeds the built frontend, including its workspace packages.
+      - run: pnpm turbo run build --filter=desktop
       - run: cargo fmt --check
+        working-directory: apps/desktop/src-tauri
       - run: cargo clippy --all-targets -- -D warnings
+        working-directory: apps/desktop/src-tauri
       - run: cargo test
+        working-directory: apps/desktop/src-tauri
