@@ -1,7 +1,7 @@
 import type { Root } from "mdast";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
-import { unified, type Plugin } from "unified";
+import { unified, type Plugin, type PluggableList } from "unified";
 import { replaceReferences } from "./refs";
 import { wrapEvidenceSpans } from "./spans";
 
@@ -10,10 +10,12 @@ export const remarkLogboek: Plugin<[], Root> = () => (tree) => {
   replaceReferences(tree);
 };
 
-const processor = unified().use(remarkParse).use(remarkGfm).use(remarkLogboek);
+export const logboekRemarkPlugins: PluggableList = [remarkGfm, remarkLogboek];
+
+const processor = unified().use(remarkParse).use(logboekRemarkPlugins);
 
 export function parseMarkdown(body: string): Root {
-  return processor.runSync(processor.parse(body));
+  return processor.runSync(processor.parse(body)) as Root;
 }
 
 export * from "./nodes";

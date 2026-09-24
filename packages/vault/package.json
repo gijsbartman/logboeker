@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "tsc --watch",
     "build": "tsc",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "check-types": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\""
   },
@@ -23,5 +23,8 @@
     "typescript": "latest",
     "vitest": "^4.1.9"
   },
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@logboeker/core": "workspace:*"
+  }
 }

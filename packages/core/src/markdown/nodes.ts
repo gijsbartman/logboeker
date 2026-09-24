@@ -1,3 +1,4 @@
+import type { ElementContent } from "hast";
 import type { PhrasingContent } from "mdast";
 import type { Vaardigheid } from "../vaardigheden";
 
@@ -11,18 +12,20 @@ export interface EvidenceSpan {
   data?: { hName: string; hProperties: Record<string, unknown> };
 }
 
+type RefData = { hName: string; hProperties: Record<string, unknown>; hChildren: ElementContent[] };
+
 export interface EntryRef {
   type: "entryRef";
   key: string;
   value: string;
-  data?: { hName: string; hProperties: Record<string, unknown> };
+  data?: RefData;
 }
 
 export interface FileRef {
   type: "fileRef";
   name: string;
   value: string;
-  data?: { hName: string; hProperties: Record<string, unknown> };
+  data?: RefData;
 }
 
 declare module "mdast" {

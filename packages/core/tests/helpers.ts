@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseConfig, parseEntry, type Entry } from "../src";
 
-const VAULT = join(import.meta.dirname, "fixtures/vault");
+const VAULT = join(import.meta.dirname, "../../../fixtures/vault");
 
 export const config = parseConfig(readFileSync(join(VAULT, "data/config.md"), "utf8"));
 

@@ -48,6 +48,7 @@ export interface Entry {
   frontmatter: Frontmatter;
   frontmatterIssues: FrontmatterIssue[];
   body: string;
+  text: string;
 }
 
 const CHECK_IN_HEADING = /^wat ga ik doen vandaag\??$/i;
@@ -160,6 +161,7 @@ export function parseEntry(path: string, source: string, config: Config): Parsed
     frontmatter,
     frontmatterIssues: issues,
     body: split.body,
+    text: tree.children.map((block) => toString(block)).join("\n"),
   };
   return { entry, tree };
 }

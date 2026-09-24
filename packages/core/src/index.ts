@@ -8,3 +8,4 @@ export * from "./resolve";
 export * from "./schema";
 export * from "./validate";
 export * from "./vaardigheden";
+export * from "./search";

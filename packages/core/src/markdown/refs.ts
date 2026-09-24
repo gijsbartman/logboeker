@@ -11,7 +11,7 @@ function fileRef(value: string, name: string): FileRef {
     type: "fileRef",
     name: trimmed,
     value,
-    data: { hName: H_NAMES.fileRef, hProperties: { name: trimmed } },
+    data: { hName: H_NAMES.fileRef, hProperties: { name: trimmed }, hChildren: [{ type: "text", value }] },
   };
 }
 
@@ -21,7 +21,7 @@ function entryRef(value: string, bracket?: string, date?: string, bare?: string)
     type: "entryRef",
     key,
     value,
-    data: { hName: H_NAMES.entryRef, hProperties: { refKey: key } },
+    data: { hName: H_NAMES.entryRef, hProperties: { refKey: key }, hChildren: [{ type: "text", value }] },
   };
 }
 
