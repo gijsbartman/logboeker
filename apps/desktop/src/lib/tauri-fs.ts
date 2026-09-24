@@ -1,5 +1,6 @@
 import type { WritableVaultFs } from "@logboeker/vault";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { exists, mkdir, readDir, readTextFile, rename, watch, writeTextFile } from "@tauri-apps/plugin-fs";
 
 const IGNORED = /[\\/](\.git|\.DS_Store)([\\/]|$)/;
@@ -17,6 +18,7 @@ export function createTauriFs(root: string): WritableVaultFs {
       return (await exists(at(path))) ? readTextFile(at(path)) : null;
     },
     fileUrl: (path) => convertFileSrc(at(path)),
+    open: (path) => openPath(at(path)),
     mkdir: (dir) => mkdir(at(dir), { recursive: true }),
     async writeText(path, contents) {
       const temp = `${at(path)}.tmp`;

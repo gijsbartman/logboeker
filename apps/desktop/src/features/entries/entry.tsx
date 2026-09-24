@@ -130,7 +130,7 @@ function Attachments({
   ...props
 }: ComponentProps<typeof CardContent>) {
   const { entry, openFiles, toggleFile } = useEntry();
-  const { fileUrl } = useVault();
+  const { fileUrl, openFile } = useVault();
   if (entry.attachments.length === 0) return null;
 
   return (
@@ -140,6 +140,7 @@ function Attachments({
           key={name}
           name={name}
           url={fileUrl(name)}
+          openExternally={() => openFile(name)}
           open={openFiles.includes(name)}
           onOpenChange={() => toggleFile(name)}
         >
