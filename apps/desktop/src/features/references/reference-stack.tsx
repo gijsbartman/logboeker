@@ -111,7 +111,7 @@ function Item({ entry }: { entry: EntryModel }) {
 
 function FileItem({ name }: { name: string }) {
   const { show } = useStack();
-  const { entries, fileUrl } = useVault();
+  const { entries, fileUrl, openFile } = useVault();
   const usedIn = entries.filter((entry) => entry.attachments.includes(name));
 
   return (
@@ -126,7 +126,12 @@ function FileItem({ name }: { name: string }) {
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Attachment.Root name={name} url={fileUrl(name)} defaultOpen>
+        <Attachment.Root
+          name={name}
+          url={fileUrl(name)}
+          openExternally={() => openFile(name)}
+          defaultOpen
+        >
           <Attachment.Trigger />
           <Attachment.Preview />
         </Attachment.Root>

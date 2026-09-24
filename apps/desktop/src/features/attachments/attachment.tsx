@@ -6,6 +6,7 @@ import {
   FileWarning,
   Image,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, type ComponentProps } from "react";
 import {
   Collapsible,
@@ -14,13 +15,15 @@ import {
 } from "@/components/ui/collapsible";
 import "@/features/editorial.css";
 
-type AttachmentKind = "pdf" | "image" | "other";
+type AttachmentKind = "pdf" | "image" | "text" | "other";
 
 const IMAGE = /\.(png|jpe?g|gif|webp|svg|avif)$/i;
+const TEXT = /\.(txt|tex|md|csv|json|log|ya?ml)$/i;
 
 export function attachmentKind(name: string): AttachmentKind {
   if (/\.pdf$/i.test(name)) return "pdf";
   if (IMAGE.test(name)) return "image";
+  if (TEXT.test(name)) return "text";
   return "other";
 }
 
@@ -28,6 +31,7 @@ type AttachmentContextValue = {
   name: string;
   url: string | null;
   kind: AttachmentKind;
+  openExternally?: () => void;
 };
 
 const AttachmentContext = createContext<AttachmentContextValue | null>(null);
@@ -42,12 +46,20 @@ function useAttachment() {
 type RootProps = ComponentProps<typeof Collapsible> & {
   name: string;
   url: string | null;
+  openExternally?: () => void;
 };
 
-function Root({ name, url, className, children, ...props }: RootProps) {
+function Root({
+  name,
+  url,
+  openExternally,
+  className,
+  children,
+  ...props
+}: RootProps) {
   return (
     <AttachmentContext.Provider
-      value={{ name, url, kind: attachmentKind(name) }}
+      value={{ name, url, kind: attachmentKind(name), openExternally }}
     >
       <Collapsible
         data-slot="attachment"
@@ -64,16 +76,22 @@ function Root({ name, url, className, children, ...props }: RootProps) {
   );
 }
 
-const ICONS = { pdf: FileText, image: Image, other: FileText };
+const ICONS = { pdf: FileText, image: Image, text: FileText, other: FileText };
 
 function Trigger({ className, ...props }: ComponentProps<"button">) {
-  const { name, url, kind } = useAttachment();
+  const { name, url, kind, openExternally } = useAttachment();
   const Icon = url === null ? FileWarning : ICONS[kind];
+  const previewable = url !== null && kind !== "other";
 
   return (
     <div className="flex items-center gap-3 py-3 text-xs">
       <CollapsibleTrigger
-        disabled={url === null || kind === "other"}
+        disabled={url === null || (!previewable && !openExternally)}
+        onClick={(event) => {
+          if (previewable) return;
+          event.preventDefault();
+          openExternally?.();
+        }}
         className={cn(
           "group flex min-w-0 flex-1 items-center gap-2.5 text-left transition-colors hover:text-primary disabled:cursor-default focus-visible:outline-2 focus-visible:outline-ring",
           className,
@@ -87,16 +105,15 @@ function Trigger({ className, ...props }: ComponentProps<"button">) {
           <span className="text-xs text-destructive">ontbreekt</span>
         )}
       </CollapsibleTrigger>
-      {url !== null && (
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer"
+      {url !== null && openExternally && (
+        <button
+          type="button"
+          onClick={openExternally}
           aria-label={`${name} openen`}
           className="p-1 text-muted-foreground transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
         >
           <ExternalLink className="size-4" />
-        </a>
+        </button>
       )}
     </div>
   );
@@ -116,6 +133,8 @@ function Preview({ className, ...props }: ComponentProps<"div">) {
             title={name}
             className="h-[70vh] w-full rounded-sm"
           />
+        ) : kind === "text" ? (
+          <TextPreview url={url} />
         ) : (
           <img
             src={url}
@@ -126,6 +145,26 @@ function Preview({ className, ...props }: ComponentProps<"div">) {
         )}
       </div>
     </CollapsibleContent>
+  );
+}
+
+function TextPreview({ url }: { url: string }) {
+  const { data, isError } = useQuery({
+    queryKey: ["attachment-text", url],
+    queryFn: async () => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(response.statusText);
+      return response.text();
+    },
+  });
+
+  if (isError)
+    return <p className="text-xs text-destructive">Kon bestand niet lezen.</p>;
+
+  return (
+    <pre className="max-h-[70vh] overflow-auto rounded-sm bg-muted/40 p-3 font-mono text-xs whitespace-pre-wrap">
+      {data ?? ""}
+    </pre>
   );
 }
 

@@ -30,6 +30,7 @@ export interface VaultFs {
   exists(path: string): Promise<boolean>;
   readText(path: string): Promise<string | null>;
   fileUrl(path: string): string | null;
+  open?(path: string): Promise<void>;
   watch?(onChange: () => void): Promise<() => void>;
 }
 
@@ -48,6 +49,7 @@ export interface Vault {
   doelen: string[];
   diagnostics: Diagnostic[];
   fileUrl(name: string): string | null;
+  openFile(name: string): Promise<void>;
 }
 
 function byFrequency(values: string[]): string[] {
@@ -108,6 +110,9 @@ export async function loadVault(fs: VaultFs): Promise<Vault> {
     doelen,
     diagnostics,
     fileUrl: (name) => (fileSet.has(name) ? fs.fileUrl(`${PATHS.files}/${name}`) : null),
+    openFile: async (name) => {
+      if (fileSet.has(name)) await fs.open?.(`${PATHS.files}/${name}`);
+    },
   };
 }
 
