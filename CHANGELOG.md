@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.0](https://github.com/gijsbartman/logboeker/compare/v0.1.0...v0.2.0) (2026-09-24)
+
+
+### Features
+
+* enhance vault switcher and mobile hooks, improve styling and layout (dankjewel Astra) ([#5](https://github.com/gijsbartman/logboeker/issues/5)) ([958a630](https://github.com/gijsbartman/logboeker/commit/958a6300e0260117cb558c0450866bbfae463fec))
+* highlight text only when skill is selected and improve accessibility ([#7](https://github.com/gijsbartman/logboeker/issues/7)) ([c67e7b4](https://github.com/gijsbartman/logboeker/commit/c67e7b45130db40628b36edf5c6edb1288cec20c))
+
+
+### Bug Fixes
+
+* restore attachment previews and open files externally ([#8](https://github.com/gijsbartman/logboeker/issues/8)) ([f5c75bb](https://github.com/gijsbartman/logboeker/commit/f5c75bbd9f2beaab9f9a8ed0924bd335daa27e1c))
+
+
+### CI
+
+* build a single universal macOS bundle ([#9](https://github.com/gijsbartman/logboeker/issues/9)) ([0c487df](https://github.com/gijsbartman/logboeker/commit/0c487df5ccf9b26df1963d71f5aa50dc2774c47b))
+
 ## 0.1.0 (2026-09-24)
 
 
