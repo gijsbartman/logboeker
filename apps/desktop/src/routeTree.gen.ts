@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VaultRouteImport } from './routes/_vault'
 import { Route as WelkomRouteImport } from './routes/welkom'
-import { Route as VaultIndexRouteImport } from './routes/_vault/index'
+import { Route as VaultWorkspaceRouteImport } from './routes/_vault/_workspace'
 import { Route as VaultInstellingenRouteImport } from './routes/_vault/instellingen'
+import { Route as VaultWorkspaceIndexRouteImport } from './routes/_vault/_workspace/index'
+import { Route as VaultWorkspaceKalenderRouteImport } from './routes/_vault/_workspace/kalender'
 
 const VaultRoute = VaultRouteImport.update({
   id: '/_vault',
@@ -23,9 +25,8 @@ const WelkomRoute = WelkomRouteImport.update({
   path: '/welkom',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VaultIndexRoute = VaultIndexRouteImport.update({
-  id: '/',
-  path: '/',
+const VaultWorkspaceRoute = VaultWorkspaceRouteImport.update({
+  id: '/_workspace',
   getParentRoute: () => VaultRoute,
 } as any)
 const VaultInstellingenRoute = VaultInstellingenRouteImport.update({
@@ -33,30 +34,51 @@ const VaultInstellingenRoute = VaultInstellingenRouteImport.update({
   path: '/instellingen',
   getParentRoute: () => VaultRoute,
 } as any)
+const VaultWorkspaceIndexRoute = VaultWorkspaceIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => VaultWorkspaceRoute,
+} as any)
+const VaultWorkspaceKalenderRoute = VaultWorkspaceKalenderRouteImport.update({
+  id: '/kalender',
+  path: '/kalender',
+  getParentRoute: () => VaultWorkspaceRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof VaultIndexRoute
+  '/': typeof VaultWorkspaceIndexRoute
   '/welkom': typeof WelkomRoute
   '/instellingen': typeof VaultInstellingenRoute
+  '/kalender': typeof VaultWorkspaceKalenderRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof VaultWorkspaceIndexRoute
   '/welkom': typeof WelkomRoute
   '/instellingen': typeof VaultInstellingenRoute
-  '/': typeof VaultIndexRoute
+  '/kalender': typeof VaultWorkspaceKalenderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_vault': typeof VaultRouteWithChildren
   '/welkom': typeof WelkomRoute
+  '/_vault/_workspace': typeof VaultWorkspaceRouteWithChildren
   '/_vault/instellingen': typeof VaultInstellingenRoute
-  '/_vault/': typeof VaultIndexRoute
+  '/_vault/_workspace/kalender': typeof VaultWorkspaceKalenderRoute
+  '/_vault/_workspace/': typeof VaultWorkspaceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/welkom' | '/instellingen'
+  fullPaths: '/' | '/welkom' | '/instellingen' | '/kalender'
   fileRoutesByTo: FileRoutesByTo
-  to: '/welkom' | '/instellingen' | '/'
-  id: '__root__' | '/_vault' | '/welkom' | '/_vault/instellingen' | '/_vault/'
+  to: '/' | '/welkom' | '/instellingen' | '/kalender'
+  id:
+    | '__root__'
+    | '/_vault'
+    | '/welkom'
+    | '/_vault/_workspace'
+    | '/_vault/instellingen'
+    | '/_vault/_workspace/kalender'
+    | '/_vault/_workspace/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -80,11 +102,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WelkomRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_vault/': {
-      id: '/_vault/'
-      path: '/'
+    '/_vault/_workspace': {
+      id: '/_vault/_workspace'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof VaultIndexRouteImport
+      preLoaderRoute: typeof VaultWorkspaceRouteImport
       parentRoute: typeof VaultRoute
     }
     '/_vault/instellingen': {
@@ -94,17 +116,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VaultInstellingenRouteImport
       parentRoute: typeof VaultRoute
     }
+    '/_vault/_workspace/': {
+      id: '/_vault/_workspace/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof VaultWorkspaceIndexRouteImport
+      parentRoute: typeof VaultWorkspaceRoute
+    }
+    '/_vault/_workspace/kalender': {
+      id: '/_vault/_workspace/kalender'
+      path: '/kalender'
+      fullPath: '/kalender'
+      preLoaderRoute: typeof VaultWorkspaceKalenderRouteImport
+      parentRoute: typeof VaultWorkspaceRoute
+    }
   }
 }
 
+interface VaultWorkspaceRouteChildren {
+  VaultWorkspaceKalenderRoute: typeof VaultWorkspaceKalenderRoute
+  VaultWorkspaceIndexRoute: typeof VaultWorkspaceIndexRoute
+}
+
+const VaultWorkspaceRouteChildren: VaultWorkspaceRouteChildren = {
+  VaultWorkspaceKalenderRoute: VaultWorkspaceKalenderRoute,
+  VaultWorkspaceIndexRoute: VaultWorkspaceIndexRoute,
+}
+
+const VaultWorkspaceRouteWithChildren = VaultWorkspaceRoute._addFileChildren(
+  VaultWorkspaceRouteChildren,
+)
+
 interface VaultRouteChildren {
+  VaultWorkspaceRoute: typeof VaultWorkspaceRouteWithChildren
   VaultInstellingenRoute: typeof VaultInstellingenRoute
-  VaultIndexRoute: typeof VaultIndexRoute
 }
 
 const VaultRouteChildren: VaultRouteChildren = {
+  VaultWorkspaceRoute: VaultWorkspaceRouteWithChildren,
   VaultInstellingenRoute: VaultInstellingenRoute,
-  VaultIndexRoute: VaultIndexRoute,
 }
 
 const VaultRouteWithChildren = VaultRoute._addFileChildren(VaultRouteChildren)

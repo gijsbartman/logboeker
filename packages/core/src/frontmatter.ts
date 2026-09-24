@@ -1,4 +1,4 @@
-import { parseDocument, type ToStringOptions } from "yaml";
+import { parseDocument, type Document, type ToStringOptions } from "yaml";
 
 export interface SplitSource {
   yaml: string | null;
@@ -60,27 +60,33 @@ const STRINGIFY: ToStringOptions = {
 
 // Edits the YAML document rather than a plain object, so key order, comments
 // and unknown fields survive. Everything outside the frontmatter is untouched.
-export function updateFrontmatter(
-  source: string,
-  patch: Record<string, unknown>,
-): string {
+export function editFrontmatter(source: string, edit: (doc: Document) => void): string {
   const split = splitFrontmatter(source);
   const doc = parseDocument(split.yaml ?? "");
   if (doc.errors.length > 0) {
     throw new Error(`Invalid frontmatter: ${doc.errors[0]!.message}`);
   }
 
-  for (const [key, value] of Object.entries(patch)) {
-    if (value === undefined) {
-      doc.delete(key);
-    } else {
-      doc.set(key, doc.createNode(value, { flow: true }));
-    }
-  }
+  edit(doc);
 
   const yaml = doc.contents === null ? "" : doc.toString(STRINGIFY);
   if (split.yaml === null) {
     return `---\n${yaml}---\n\n${source}`;
   }
   return source.slice(0, split.yamlStart) + yaml + source.slice(split.yamlEnd);
+}
+
+export function updateFrontmatter(
+  source: string,
+  patch: Record<string, unknown>,
+): string {
+  return editFrontmatter(source, (doc) => {
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === undefined) {
+        doc.delete(key);
+      } else {
+        doc.set(key, doc.createNode(value, { flow: true }));
+      }
+    }
+  });
 }

@@ -9,6 +9,25 @@
   padding: 12px 28px;
 }
 
+.workspace-views {
+  display: flex;
+  gap: 18px;
+}
+.workspace-views a {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  transition: color 150ms;
+}
+.workspace-views a:hover,
+.workspace-views a[data-status="active"] {
+  color: var(--foreground);
+}
+.workspace-views a[data-status="active"] {
+  font-weight: 600;
+  text-decoration: underline 2px var(--primary);
+  text-underline-offset: 6px;
+}
+
 .workspace-divider {
   height: 16px;
   width: 1px;

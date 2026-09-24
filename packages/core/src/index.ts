@@ -5,6 +5,7 @@ export * from "./entry";
 export * from "./frontmatter";
 export * from "./markdown";
 export * from "./resolve";
+export * from "./roadmap";
 export * from "./schema";
 export * from "./validate";
 export * from "./vaardigheden";

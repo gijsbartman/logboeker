@@ -1,7 +1,15 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { expect, test } from "vitest";
-import { ConflictError, createMemoryFs, loadVault, missingVaultPaths, saveSource, scaffoldVault } from "../src";
+import {
+  ConflictError,
+  createMemoryFs,
+  editRoadmapFile,
+  loadVault,
+  missingVaultPaths,
+  saveSource,
+  scaffoldVault,
+} from "../src";
 
 const ROOT = join(import.meta.dirname, "../../../fixtures/vault");
 
@@ -44,6 +52,27 @@ test("goals are ordered by how often they occur", async () => {
   expect(vault.doelen).toEqual(["b", "a"]);
 });
 
+test("roadmap goals lead the goal list, and a missing roadmap is empty", async () => {
+  const vault = await loadVault(fixtureFs());
+  expect(vault.roadmap.mijlpalen).toHaveLength(4);
+  expect(vault.doelen.slice(0, 3)).toEqual(["tokens", "js-interop", "advies"]);
+  expect(vault.doelen).toContain("onboarding");
+  expect(vault.diagnostics.map((d) => d.code)).toContain("ongepland-doel");
+
+  const bare = await loadVault(createMemoryFs({ "data/config.md": "---\n---\n" }));
+  expect(bare.roadmap).toEqual({ doelen: [], mijlpalen: [], refs: [], issues: [] });
+});
+
+test("editing the roadmap creates the file when it is missing", async () => {
+  const fs = createMemoryFs({ "data/config.md": "---\nsemesterstart: 2026-09-07\n---\n" });
+  await editRoadmapFile(fs, [
+    { list: "doelen", action: "add", fields: { slug: "advies", titel: "Advies", van: "week 2", tot: "week 5" } },
+  ]);
+  const vault = await loadVault(fs);
+  expect(vault.roadmap.doelen).toMatchObject([{ slug: "advies", van: "2026-09-14", tot: "2026-10-09" }]);
+  expect(await fs.readText("logboek/roadmap.md")).toContain("# Roadmap");
+});
+
 test("criteria, files and diagnostics come with the snapshot", async () => {
   const vault = await loadVault(fixtureFs());
   expect(vault.criteria.samenwerken?.levels[3]?.subtitle).toBeTruthy();
@@ -83,10 +112,13 @@ test("scaffolding creates a vault that loads", async () => {
   await scaffoldVault(fs, { student_naam: "Gijs", projectnaam: "X", semesterstart: "2026-09-07", sprintlengte_weken: 3 });
 
   expect(await missingVaultPaths(fs)).toEqual([]);
-  expect(await fs.readText("data/config.md")).toMatch(/^---\nstudent_naam: Gijs\n.*sprintlengte_weken: 3\n---\n\n# Configuratie/s);
+  expect(await fs.readText("data/config.md")).toMatch(
+    /^---\nstudent_naam: Gijs\n.*sprintlengte_weken: 3\nsemesterlengte_weken: 20\n---\n\n# Configuratie/s,
+  );
   const vault = await loadVault(fs);
   expect(vault.config).toMatchObject({ projectnaam: "X", semesterstart: "2026-09-07", sprintlengte_weken: 3 });
   expect(vault.entries).toEqual([]);
+  expect(vault.roadmap).toMatchObject({ doelen: [], mijlpalen: [], issues: [] });
 });
 
 test("scaffolding refuses to overwrite a vault", async () => {

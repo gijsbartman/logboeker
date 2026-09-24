@@ -2,23 +2,31 @@ import {
   configSchema,
   createResolver,
   createSearchIndex,
+  editRoadmap,
+  EMPTY_ROADMAP,
   ENTRY_DIRS,
   parseConfig,
   parseCriteria,
   parseEntry,
+  parseRoadmap,
+  ROADMAP_TEMPLATE,
   updateFrontmatter,
   validateEntry,
+  validateRoadmap,
   type Config,
   type CriteriaBook,
   type Diagnostic,
   type Entry,
   type Resolver,
+  type Roadmap,
+  type RoadmapEdit,
   type SearchIndex,
 } from "@logboeker/core";
 
 export const PATHS = {
   config: "data/config.md",
   criteria: "data/json/vaardigheden.json",
+  roadmap: "logboek/roadmap.md",
   files: "logboek/files",
   extracted: "logboek/files/.extracted",
 } as const;
@@ -45,6 +53,7 @@ export interface Vault {
   resolver: Resolver;
   search: SearchIndex;
   criteria: CriteriaBook;
+  roadmap: Roadmap;
   files: string[];
   doelen: string[];
   diagnostics: Diagnostic[];
@@ -78,11 +87,13 @@ export async function loadVault(fs: VaultFs): Promise<Vault> {
   if (configSource === null) throw new Error(`${PATHS.config} is missing`);
   const config = parseConfig(configSource);
 
-  const [entries, criteriaSource, listed] = await Promise.all([
+  const [entries, criteriaSource, roadmapSource, listed] = await Promise.all([
     readEntries(fs, config),
     fs.readText(PATHS.criteria),
+    fs.readText(PATHS.roadmap),
     fs.list(PATHS.files),
   ]);
+  const roadmap = roadmapSource === null ? EMPTY_ROADMAP : parseRoadmap(roadmapSource, config);
   const files = listed.filter((name) => !name.startsWith("."));
 
   // A missing or unreadable cache only costs search results, never the vault.
@@ -96,9 +107,13 @@ export async function loadVault(fs: VaultFs): Promise<Vault> {
   );
 
   const resolver = createResolver(entries);
-  const doelen = byFrequency(entries.flatMap((e) => e.doelen));
+  const gepland = new Set(roadmap.doelen.map((d) => d.slug));
+  const doelen = [...gepland, ...byFrequency(entries.flatMap((e) => e.doelen)).filter((d) => !gepland.has(d))];
   const fileSet = new Set(files);
-  const diagnostics = entries.flatMap((entry) => validateEntry(entry, { resolver, files: fileSet, doelen }));
+  const diagnostics = [
+    ...entries.flatMap((entry) => validateEntry(entry, { resolver, files: fileSet, doelen, gepland })),
+    ...validateRoadmap(roadmap, resolver),
+  ];
 
   return {
     config,
@@ -106,6 +121,7 @@ export async function loadVault(fs: VaultFs): Promise<Vault> {
     resolver,
     search: createSearchIndex(entries, (name) => extracted.get(name) ?? ""),
     criteria: criteriaSource ? parseCriteria(JSON.parse(criteriaSource)) : {},
+    roadmap,
     files,
     doelen,
     diagnostics,
@@ -136,7 +152,10 @@ export async function scaffoldVault(fs: WritableVaultFs, config: NewVaultConfig)
   const fields = configSchema.parse(config);
 
   await Promise.all([PATHS.files, ...Object.values(ENTRY_DIRS), "data"].map((dir) => fs.mkdir(dir)));
-  await fs.writeText(PATHS.config, updateFrontmatter(CONFIG_BODY, fields));
+  await Promise.all([
+    fs.writeText(PATHS.config, updateFrontmatter(CONFIG_BODY, fields)),
+    fs.writeText(PATHS.roadmap, ROADMAP_TEMPLATE),
+  ]);
 }
 
 export function createMemoryFs(
@@ -184,4 +203,9 @@ export async function saveSource(fs: WritableVaultFs, path: string, next: string
   const current = await fs.readText(path);
   if (current !== base) throw new ConflictError(current);
   await fs.writeText(path, next);
+}
+
+export async function editRoadmapFile(fs: WritableVaultFs, edits: RoadmapEdit[]): Promise<void> {
+  const current = await fs.readText(PATHS.roadmap);
+  await fs.writeText(PATHS.roadmap, editRoadmap(current, edits));
 }

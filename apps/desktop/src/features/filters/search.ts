@@ -1,4 +1,4 @@
-import { NIVEAUS, VAARDIGHEDEN, type Entry } from "@logboeker/core";
+import { NIVEAUS, VAARDIGHEDEN, type Doel, type Entry, type Mijlpaal } from "@logboeker/core";
 import { z } from "zod";
 
 export const searchSchema = z.object({
@@ -31,6 +31,18 @@ export function matchesFilters(entry: Entry, search: Search): boolean {
     overlaps(search.doel, entry.doelen) &&
     overlaps(search.niveau, levelsOf(entry))
   );
+}
+
+export function matchesMijlpaal(mijlpaal: Mijlpaal, search: Search): boolean {
+  return (
+    overlaps(search.vaardigheid, mijlpaal.vaardigheden) &&
+    overlaps(search.doel, mijlpaal.doel ? [mijlpaal.doel] : []) &&
+    overlaps(search.niveau, mijlpaal.niveau === null ? [] : [mijlpaal.niveau])
+  );
+}
+
+export function matchesDoel(doel: Doel, search: Search): boolean {
+  return overlaps(search.doel, [doel.slug]);
 }
 
 export function isFiltering(search: Search): boolean {

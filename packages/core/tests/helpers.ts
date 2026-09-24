@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseConfig, parseEntry, type Entry } from "../src";
+import { parseConfig, parseEntry, parseRoadmap, type Entry, type Roadmap } from "../src";
 
 const VAULT = join(import.meta.dirname, "../../../fixtures/vault");
 
@@ -22,4 +22,12 @@ export function entry(id: string): Entry {
   const found = loadEntries().find((e) => e.id === id);
   if (!found) throw new Error(`No fixture ${id}`);
   return found;
+}
+
+export function readRoadmapSource(): string {
+  return readFileSync(join(VAULT, "logboek/roadmap.md"), "utf8");
+}
+
+export function readRoadmap(): Roadmap {
+  return parseRoadmap(readRoadmapSource(), config);
 }

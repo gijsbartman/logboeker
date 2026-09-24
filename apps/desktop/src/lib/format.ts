@@ -17,3 +17,9 @@ export function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+const shortDateFormat = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short" });
+
+export function formatShortDate(iso: string): string {
+  return shortDateFormat.format(new Date(`${iso}T00:00:00`));
+}

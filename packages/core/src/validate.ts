@@ -1,5 +1,6 @@
 import type { Entry } from "./entry";
 import type { Resolver } from "./resolve";
+import type { Roadmap } from "./roadmap";
 import { isNiveau, isVaardigheid } from "./vaardigheden";
 
 export type DiagnosticCode =
@@ -9,7 +10,10 @@ export type DiagnosticCode =
   | "unresolved-ref"
   | "missing-attachment"
   | "span-in-check-in"
-  | "similar-doel";
+  | "similar-doel"
+  | "ongepland-doel"
+  | "invalid-roadmap"
+  | "unknown-doel";
 
 export interface Diagnostic {
   entryId: string;
@@ -22,7 +26,10 @@ export interface ValidationContext {
   resolver: Resolver;
   files: ReadonlySet<string>;
   doelen: readonly string[];
+  gepland?: ReadonlySet<string>;
 }
+
+export const ROADMAP_ID = "logboek/roadmap";
 
 function editDistance(a: string, b: string): number {
   let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
@@ -85,7 +92,36 @@ export function validateEntry(entry: Entry, context: ValidationContext): Diagnos
   for (const doel of entry.doelen) {
     const variant = findSimilarDoel(doel, context.doelen);
     if (variant) report("similar-doel", "warning", `Doel "${doel}" lijkt op bestaand doel "${variant}"`);
+    else if (context.gepland?.size && !context.gepland.has(doel)) {
+      report("ongepland-doel", "warning", `Doel "${doel}" staat niet in de roadmap`);
+    }
   }
 
   return diagnostics;
+}
+
+export function validateRoadmap(roadmap: Roadmap, resolver: Resolver): Diagnostic[] {
+  const report = (code: DiagnosticCode, message: string): Diagnostic => ({
+    entryId: ROADMAP_ID,
+    code,
+    severity: "error",
+    message,
+  });
+
+  return [
+    ...roadmap.issues.map((issue) => report(issue.code, issue.message)),
+    // Planned evidence may not exist yet; only a reached milestone must point somewhere.
+    ...roadmap.mijlpalen
+      .filter((m) => m.behaald)
+      .flatMap((m) =>
+        m.bewijs
+          .filter((key) => !resolver.resolve(key))
+          .map((key) =>
+            report("unresolved-ref", `Mijlpaal "${m.titel}" is behaald, maar bewijs "${key}" bestaat niet`),
+          ),
+      ),
+    ...roadmap.refs
+      .filter((key) => !resolver.resolve(key))
+      .map((key) => report("unresolved-ref", `Verwijzing @${key} wijst nergens heen`)),
+  ];
 }
