@@ -5,6 +5,8 @@ export type EntryContextValue = {
   entry: Entry;
   openFiles: string[];
   toggleFile: (name: string) => void;
+  editing: boolean;
+  setEditing: (editing: boolean) => void;
 };
 
 export const EntryContext = createContext<EntryContextValue | null>(null);

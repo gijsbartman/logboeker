@@ -19,4 +19,5 @@ export function parseMarkdown(body: string): Root {
 }
 
 export * from "./nodes";
-export { parseSpanAttrs } from "./spans";
+export { formatSpanAttrs, parseSpanAttrs } from "./spans";
+export { checkInRange, scanSource, type SourceRef, type SourceSpan } from "./source";

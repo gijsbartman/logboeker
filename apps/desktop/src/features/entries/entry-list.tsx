@@ -14,7 +14,10 @@ function EntryCard({ entry }: { entry: EntryModel }) {
       <Entry.Header>
         <Entry.Title />
         <Entry.Meta />
-        <Entry.Kind />
+        <Entry.Actions>
+          <Entry.EditButton />
+          <Entry.Kind />
+        </Entry.Actions>
       </Entry.Header>
       <Entry.Body />
       <Entry.Attachments />

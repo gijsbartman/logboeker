@@ -43,3 +43,6 @@ if (typeof globalThis.localStorage?.setItem !== "function") {
     } satisfies Storage,
   });
 }
+
+Range.prototype.getClientRects = () => ({ length: 0, item: () => null, [Symbol.iterator]: [][Symbol.iterator] }) as DOMRectList;
+Range.prototype.getBoundingClientRect = () => new DOMRect();

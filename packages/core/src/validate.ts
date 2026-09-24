@@ -44,6 +44,10 @@ function looksLikeVariant(a: string, b: string) {
   return a !== b && Math.min(a.length, b.length) > 4 && (a.startsWith(b) || b.startsWith(a) || editDistance(a, b) <= 2);
 }
 
+export function findSimilarDoel(doel: string, doelen: readonly string[]): string | undefined {
+  return doelen.find((other) => looksLikeVariant(doel, other));
+}
+
 export function validateEntry(entry: Entry, context: ValidationContext): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   const report = (code: DiagnosticCode, severity: Diagnostic["severity"], message: string) =>
@@ -79,7 +83,7 @@ export function validateEntry(entry: Entry, context: ValidationContext): Diagnos
   }
 
   for (const doel of entry.doelen) {
-    const variant = context.doelen.find((other) => looksLikeVariant(doel, other));
+    const variant = findSimilarDoel(doel, context.doelen);
     if (variant) report("similar-doel", "warning", `Doel "${doel}" lijkt op bestaand doel "${variant}"`);
   }
 

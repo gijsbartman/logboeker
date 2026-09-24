@@ -1,11 +1,11 @@
-import type { VaultFs } from "@logboeker/vault";
+import type { WritableVaultFs } from "@logboeker/vault";
 import { isTauri } from "@tauri-apps/api/core";
 import { load } from "@tauri-apps/plugin-store";
 import { createTauriFs } from "./tauri-fs";
 
 export type VaultSource = {
   root: string;
-  fs: VaultFs;
+  fs: WritableVaultFs;
 };
 
 export type VaultRegistry = {

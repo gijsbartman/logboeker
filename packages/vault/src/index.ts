@@ -168,3 +168,15 @@ export function createMemoryFs(
     },
   };
 }
+
+export class ConflictError extends Error {
+  constructor(readonly current: string | null) {
+    super("Het bestand is gewijzigd sinds het werd geopend");
+  }
+}
+
+export async function saveSource(fs: WritableVaultFs, path: string, next: string, base: string): Promise<void> {
+  const current = await fs.readText(path);
+  if (current !== base) throw new ConflictError(current);
+  await fs.writeText(path, next);
+}

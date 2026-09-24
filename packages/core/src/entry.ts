@@ -47,11 +47,12 @@ export interface Entry {
   spans: SpanSummary[];
   frontmatter: Frontmatter;
   frontmatterIssues: FrontmatterIssue[];
+  source: string;
   body: string;
   text: string;
 }
 
-const CHECK_IN_HEADING = /^wat ga ik doen vandaag\??$/i;
+export const CHECK_IN_HEADING = /^wat ga ik doen vandaag\??$/i;
 const DATE_PREFIX = /^\d{4}-\d{2}-\d{2}/;
 
 export function kindOf(path: string): EntryKind | null {
@@ -160,6 +161,7 @@ export function parseEntry(path: string, source: string, config: Config): Parsed
     spans,
     frontmatter,
     frontmatterIssues: issues,
+    source,
     body: split.body,
     text: tree.children.map((block) => toString(block)).join("\n"),
   };
