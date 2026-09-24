@@ -3,13 +3,13 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { EntryList } from "@/features/entries/entry-list";
-import { AppSidebar } from "@/features/filters/app-sidebar";
+import { AppSidebar } from "@/features/layout/app-sidebar";
 import { DEFAULT_SEARCH, isFiltering, matchesFilters, searchSchema } from "@/features/filters/search";
 import { ReferenceStack } from "@/features/references/reference-stack";
 import { SearchCommand } from "@/features/search/search-command";
 import { useVault } from "@/lib/vault";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_vault/")({
   validateSearch: searchSchema,
   search: { middlewares: [stripSearchParams(DEFAULT_SEARCH)] },
   component: EntriesPage,
@@ -37,7 +37,7 @@ function EntriesPage() {
                 </div>
               </header>
               <main className="mx-auto max-w-3xl p-6">
-                <EntryList entries={shown} doelen={doelen} />
+                <EntryList entries={shown} total={entries.length} doelen={doelen} />
               </main>
             </ScrollArea>
           </ResizablePanel>

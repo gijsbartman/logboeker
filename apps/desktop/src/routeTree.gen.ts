@@ -9,50 +9,109 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as VaultRouteImport } from './routes/_vault'
+import { Route as WelkomRouteImport } from './routes/welkom'
+import { Route as VaultIndexRouteImport } from './routes/_vault/index'
+import { Route as VaultInstellingenRouteImport } from './routes/_vault/instellingen'
 
-const IndexRoute = IndexRouteImport.update({
+const VaultRoute = VaultRouteImport.update({
+  id: '/_vault',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelkomRoute = WelkomRouteImport.update({
+  id: '/welkom',
+  path: '/welkom',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VaultIndexRoute = VaultIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => VaultRoute,
+} as any)
+const VaultInstellingenRoute = VaultInstellingenRouteImport.update({
+  id: '/instellingen',
+  path: '/instellingen',
+  getParentRoute: () => VaultRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof VaultIndexRoute
+  '/welkom': typeof WelkomRoute
+  '/instellingen': typeof VaultInstellingenRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/welkom': typeof WelkomRoute
+  '/instellingen': typeof VaultInstellingenRoute
+  '/': typeof VaultIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_vault': typeof VaultRouteWithChildren
+  '/welkom': typeof WelkomRoute
+  '/_vault/instellingen': typeof VaultInstellingenRoute
+  '/_vault/': typeof VaultIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/welkom' | '/instellingen'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/welkom' | '/instellingen' | '/'
+  id: '__root__' | '/_vault' | '/welkom' | '/_vault/instellingen' | '/_vault/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  VaultRoute: typeof VaultRouteWithChildren
+  WelkomRoute: typeof WelkomRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_vault': {
+      id: '/_vault'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof VaultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welkom': {
+      id: '/welkom'
+      path: '/welkom'
+      fullPath: '/welkom'
+      preLoaderRoute: typeof WelkomRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_vault/': {
+      id: '/_vault/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof VaultIndexRouteImport
+      parentRoute: typeof VaultRoute
+    }
+    '/_vault/instellingen': {
+      id: '/_vault/instellingen'
+      path: '/instellingen'
+      fullPath: '/instellingen'
+      preLoaderRoute: typeof VaultInstellingenRouteImport
+      parentRoute: typeof VaultRoute
     }
   }
 }
 
+interface VaultRouteChildren {
+  VaultInstellingenRoute: typeof VaultInstellingenRoute
+  VaultIndexRoute: typeof VaultIndexRoute
+}
+
+const VaultRouteChildren: VaultRouteChildren = {
+  VaultInstellingenRoute: VaultInstellingenRoute,
+  VaultIndexRoute: VaultIndexRoute,
+}
+
+const VaultRouteWithChildren = VaultRoute._addFileChildren(VaultRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  VaultRoute: VaultRouteWithChildren,
+  WelkomRoute: WelkomRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

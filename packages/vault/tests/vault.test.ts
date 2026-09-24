@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { expect, test } from "vitest";
-import { createMemoryFs, loadVault } from "../src";
+import { createMemoryFs, loadVault, missingVaultPaths, scaffoldVault } from "../src";
 
 const ROOT = join(import.meta.dirname, "../../../fixtures/vault");
 
@@ -67,4 +67,51 @@ test("search includes text extracted from attachments", async () => {
     }),
   );
   expect(vault.search.search("stakeholder").map((hit) => hit.entry.id)).toEqual(["logboek/evidence/2026-09-12-deck"]);
+});
+
+test("an existing vault has nothing missing", async () => {
+  expect(await missingVaultPaths(fixtureFs())).toEqual([]);
+});
+
+test("an arbitrary folder reports what a vault needs", async () => {
+  const fs = createMemoryFs({ "notes.md": "" });
+  expect(await missingVaultPaths(fs)).toEqual(["data/config.md", "logboek/daily", "logboek/evidence"]);
+});
+
+test("scaffolding creates a vault that loads", async () => {
+  const fs = createMemoryFs({});
+  await scaffoldVault(fs, { student_naam: "Gijs", projectnaam: "X", semesterstart: "2026-09-07", sprintlengte_weken: 3 });
+
+  expect(await missingVaultPaths(fs)).toEqual([]);
+  expect(await fs.readText("data/config.md")).toMatch(/^---\nstudent_naam: Gijs\n.*sprintlengte_weken: 3\n---\n\n# Configuratie/s);
+  const vault = await loadVault(fs);
+  expect(vault.config).toMatchObject({ projectnaam: "X", semesterstart: "2026-09-07", sprintlengte_weken: 3 });
+  expect(vault.entries).toEqual([]);
+});
+
+test("scaffolding refuses to overwrite a vault", async () => {
+  await expect(scaffoldVault(fixtureFs(), { sprintlengte_weken: 2 })).rejects.toThrow("al een logboek");
+});
+
+test("scaffolding rejects an invalid config", async () => {
+  await expect(scaffoldVault(createMemoryFs({}), { semesterstart: "7-9-2026", sprintlengte_weken: 2 })).rejects.toThrow();
+});
+
+test("hidden files are not attachments, and an unreadable cache does not block loading", async () => {
+  const base = createMemoryFs({
+    "data/config.md": "---\n---\n",
+    "logboek/files/.gitkeep": "",
+    "logboek/files/.DS_Store": "",
+    "logboek/files/deck.pptx": "",
+  });
+  const fs = {
+    ...base,
+    readText: async (path: string) => {
+      if (path.includes(".extracted/")) throw new Error("forbidden path");
+      return base.readText(path);
+    },
+  };
+
+  const vault = await loadVault(fs);
+  expect(vault.files).toEqual(["deck.pptx"]);
 });

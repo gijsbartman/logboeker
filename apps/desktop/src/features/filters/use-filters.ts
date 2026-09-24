@@ -1,7 +1,7 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { DEFAULT_SEARCH, type FilterKey, type Search } from "./search";
 
-const route = getRouteApi("/");
+const route = getRouteApi("/_vault/");
 
 export function useFilters() {
   const search = route.useSearch();

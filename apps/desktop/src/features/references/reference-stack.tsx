@@ -2,7 +2,10 @@ import type { Entry as EntryModel } from "@logboeker/core";
 import { cn } from "cn";
 import { X } from "lucide-react";
 import { createContext, useContext, type ComponentProps } from "react";
+import { PATHS } from "@logboeker/vault";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Attachment } from "@/features/attachments/attachment";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Entry } from "@/features/entries/entry";
 import { useVault } from "@/lib/vault";
@@ -41,22 +44,28 @@ function Header({ className, ...props }: ComponentProps<"header">) {
   );
 }
 
-function Item({ entry }: { entry: EntryModel }) {
+function CloseButton({ id, label }: { id: string; label: string }) {
   const { close } = useStack();
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label={`${label} sluiten`}
+      onClick={() => close(id)}
+      className="col-start-2 row-span-2 row-start-1 self-start justify-self-end"
+    >
+      <X />
+    </Button>
+  );
+}
+
+function Item({ entry }: { entry: EntryModel }) {
   return (
     <Entry.Root entry={entry} className="shadow-none">
       <Entry.Header>
         <Entry.Title />
         <Entry.Meta />
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`${entry.title} sluiten`}
-          onClick={() => close(entry.id)}
-          className="col-start-2 row-span-2 row-start-1 self-start justify-self-end"
-        >
-          <X />
-        </Button>
+        <CloseButton id={entry.id} label={entry.title} />
       </Entry.Header>
       <Entry.Body />
       <Entry.Attachments />
@@ -64,20 +73,61 @@ function Item({ entry }: { entry: EntryModel }) {
   );
 }
 
+function FileItem({ name }: { name: string }) {
+  const { show } = useStack();
+  const { entries, fileUrl } = useVault();
+  const usedIn = entries.filter((entry) => entry.attachments.includes(name));
+
+  return (
+    <Card className="gap-4 shadow-none">
+      <CardHeader>
+        <CardTitle className="truncate font-mono text-sm">{name}</CardTitle>
+        <CardDescription>Bijlage</CardDescription>
+        <CloseButton id={`${PATHS.files}/${name}`} label={name} />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Attachment.Root name={name} url={fileUrl(name)} defaultOpen>
+          <Attachment.Trigger />
+          <Attachment.Preview />
+        </Attachment.Root>
+        <div className="space-y-1.5">
+          <h4 className="text-xs font-medium text-muted-foreground">Gebruikt in</h4>
+          {usedIn.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Geen entry verwijst naar dit bestand.</p>
+          ) : (
+            <ul className="space-y-1">
+              {usedIn.map((entry) => (
+                <li key={entry.id}>
+                  <Button variant="link" className="h-auto p-0" onClick={() => show(entry.id)}>
+                    {entry.title}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function Items({ className, ...props }: ComponentProps<"div">) {
   const { open } = useStack();
-  const { entries } = useVault();
-  const opened = open.flatMap((id) => entries.filter((e) => e.id === id));
+  const { entries, files } = useVault();
+  const filePrefix = `${PATHS.files}/`;
 
   return (
     <ScrollArea className="min-h-0 flex-1">
       <div className={cn("space-y-4 p-4", className)} {...props}>
-        {opened.map((entry) => (
-          <Item key={entry.id} entry={entry} />
-        ))}
+        {open.map((id) => {
+          const entry = entries.find((e) => e.id === id);
+          if (entry) return <Item key={id} entry={entry} />;
+          const name = id.startsWith(filePrefix) ? id.slice(filePrefix.length) : null;
+          return name && files.includes(name) ? <FileItem key={id} name={name} /> : null;
+        })}
       </div>
     </ScrollArea>
   );
 }
 
-export const ReferenceStack = { Root, Header, Items, Item };
+export const ReferenceStack = { Root, Header, Items, Item, FileItem };

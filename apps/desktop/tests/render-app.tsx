@@ -4,14 +4,13 @@ import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { demoFs } from "@/lib/demo-fs";
 import { routeTree } from "@/routeTree.gen";
 
 export function renderApp(url = "/") {
   const queryClient = new QueryClient();
   const router = createRouter({
     routeTree,
-    context: { queryClient, fs: demoFs },
+    context: { queryClient },
     history: createMemoryHistory({ initialEntries: [url] }),
   });
 

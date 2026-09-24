@@ -1,5 +1,5 @@
 import type { Entry as EntryModel } from "@logboeker/core";
-import { SearchX } from "lucide-react";
+import { NotebookPen, SearchX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -48,10 +48,27 @@ function DoelGroup({ group }: { group: EntryGroup }) {
   );
 }
 
-type EntryListProps = { entries: EntryModel[]; doelen: string[] };
+type EntryListProps = { entries: EntryModel[]; total: number; doelen: string[] };
 
-export function EntryList({ entries, doelen }: EntryListProps) {
+export function EntryList({ entries, total, doelen }: EntryListProps) {
   const { search, reset } = useFilters();
+
+  if (total === 0) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <NotebookPen />
+          </EmptyMedia>
+          <EmptyTitle>Nog geen entries</EmptyTitle>
+          <EmptyDescription>
+            Dit logboek is nog leeg. Entries in <code>logboek/daily</code> en <code>logboek/evidence</code> verschijnen
+            hier vanzelf.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
 
   if (entries.length === 0) {
     return (

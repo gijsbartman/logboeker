@@ -1,10 +1,12 @@
 import {
+  configSchema,
   createResolver,
   createSearchIndex,
   ENTRY_DIRS,
   parseConfig,
   parseCriteria,
   parseEntry,
+  updateFrontmatter,
   validateEntry,
   type Config,
   type CriteriaBook,
@@ -21,10 +23,19 @@ export const PATHS = {
   extracted: "logboek/files/.extracted",
 } as const;
 
+export const REQUIRED_PATHS = [PATHS.config, ENTRY_DIRS.log, ENTRY_DIRS.bewijs] as const;
+
 export interface VaultFs {
   list(dir: string): Promise<string[]>;
+  exists(path: string): Promise<boolean>;
   readText(path: string): Promise<string | null>;
   fileUrl(path: string): string | null;
+  watch?(onChange: () => void): Promise<() => void>;
+}
+
+export interface WritableVaultFs extends VaultFs {
+  mkdir(dir: string): Promise<void>;
+  writeText(path: string, contents: string): Promise<void>;
 }
 
 export interface Vault {
@@ -65,15 +76,20 @@ export async function loadVault(fs: VaultFs): Promise<Vault> {
   if (configSource === null) throw new Error(`${PATHS.config} is missing`);
   const config = parseConfig(configSource);
 
-  const [entries, criteriaSource, files] = await Promise.all([
+  const [entries, criteriaSource, listed] = await Promise.all([
     readEntries(fs, config),
     fs.readText(PATHS.criteria),
     fs.list(PATHS.files),
   ]);
+  const files = listed.filter((name) => !name.startsWith("."));
 
+  // A missing or unreadable cache only costs search results, never the vault.
   const extracted = new Map(
     await Promise.all(
-      files.map(async (name) => [name, (await fs.readText(`${PATHS.extracted}/${name}.txt`)) ?? ""] as const),
+      files.map(async (name) => {
+        const text = await fs.readText(`${PATHS.extracted}/${name}.txt`).catch(() => null);
+        return [name, text ?? ""] as const;
+      }),
     ),
   );
 
@@ -95,20 +111,60 @@ export async function loadVault(fs: VaultFs): Promise<Vault> {
   };
 }
 
-export function createMemoryFs(texts: Record<string, string>, urls: Record<string, string> = {}): VaultFs {
-  const paths = [...Object.keys(texts), ...Object.keys(urls)];
+export async function missingVaultPaths(fs: VaultFs): Promise<string[]> {
+  const present = await Promise.all(REQUIRED_PATHS.map((path) => fs.exists(path)));
+  return REQUIRED_PATHS.filter((_, i) => !present[i]);
+}
+
+export type NewVaultConfig = Pick<
+  Config,
+  "student_naam" | "projectnaam" | "rol" | "semesterstart" | "sprintlengte_weken"
+>;
+
+const CONFIG_BODY = `# Configuratie
+
+Persoonlijke instellingen van dit logboek. De app en de skills lezen dit bestand.
+`;
+
+export async function scaffoldVault(fs: WritableVaultFs, config: NewVaultConfig): Promise<void> {
+  if (await fs.exists(PATHS.config)) throw new Error("Deze map bevat al een logboek");
+  const fields = configSchema.parse(config);
+
+  await Promise.all([PATHS.files, ...Object.values(ENTRY_DIRS), "data"].map((dir) => fs.mkdir(dir)));
+  await fs.writeText(PATHS.config, updateFrontmatter(CONFIG_BODY, fields));
+}
+
+export function createMemoryFs(
+  texts: Record<string, string>,
+  urls: Record<string, string> = {},
+): WritableVaultFs {
+  const files = new Map(Object.entries(texts));
+  const dirs = new Set<string>();
+  const allPaths = () => [...files.keys(), ...Object.keys(urls)];
+
   return {
     async list(dir) {
       const prefix = `${dir}/`;
-      return [...new Set(paths.filter((p) => p.startsWith(prefix) && !p.slice(prefix.length).includes("/")))].map(
-        (p) => p.slice(prefix.length),
-      );
+      const names = allPaths()
+        .filter((p) => p.startsWith(prefix) && !p.slice(prefix.length).includes("/"))
+        .map((p) => p.slice(prefix.length));
+      return [...new Set(names)];
+    },
+    async exists(path) {
+      return dirs.has(path) || allPaths().some((p) => p === path || p.startsWith(`${path}/`));
     },
     async readText(path) {
-      return texts[path] ?? null;
+      return files.get(path) ?? null;
     },
     fileUrl(path) {
       return urls[path] ?? null;
+    },
+    async mkdir(dir) {
+      const parts = dir.split("/");
+      parts.forEach((_, i) => dirs.add(parts.slice(0, i + 1).join("/")));
+    },
+    async writeText(path, contents) {
+      files.set(path, contents);
     },
   };
 }

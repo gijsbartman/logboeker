@@ -5,7 +5,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { demoFs } from "@/lib/demo-fs";
 import { routeTree } from "./routeTree.gen";
 import "./index.css";
 
@@ -13,7 +12,7 @@ const queryClient = new QueryClient();
 
 const router = createRouter({
   routeTree,
-  context: { queryClient, fs: demoFs },
+  context: { queryClient },
   defaultPreload: "intent",
 });
 

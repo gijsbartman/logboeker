@@ -1,6 +1,6 @@
 import { getRouteApi } from "@tanstack/react-router";
 
-const route = getRouteApi("/");
+const route = getRouteApi("/_vault/");
 
 export function useReferences() {
   const { open } = route.useSearch();

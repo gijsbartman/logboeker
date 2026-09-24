@@ -25,3 +25,21 @@ globalThis.ResizeObserver ??= class {
 
 window.scrollTo = () => {};
 Element.prototype.scrollIntoView = () => {};
+
+// Node 25's experimental localStorage shadows jsdom's and is unusable without --localstorage-file.
+if (typeof globalThis.localStorage?.setItem !== "function") {
+  const items = new Map<string, string>();
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: (key: string) => items.get(key) ?? null,
+      setItem: (key: string, value: string) => void items.set(key, String(value)),
+      removeItem: (key: string) => void items.delete(key),
+      clear: () => items.clear(),
+      key: (index: number) => [...items.keys()][index] ?? null,
+      get length() {
+        return items.size;
+      },
+    } satisfies Storage,
+  });
+}
