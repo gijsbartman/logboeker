@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { BookOpen, ChevronsUpDown, FolderMinus, Plus, Settings } from "lucide-react";
+import { ChevronDown, FolderMinus, Plus, Settings } from "lucide-react";
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -12,8 +12,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import { useSwitchVault, useVaultRegistry, useVaultSource, vaultNameQuery } from "@/lib/vault";
+import {
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import {
+  useSwitchVault,
+  useVaultRegistry,
+  useVaultSource,
+  vaultNameQuery,
+} from "@/lib/vault";
 import { activateVault, folderName, removeVault } from "@/lib/vaults";
 import { AddVaultDialog } from "./add-vault-dialog";
 
@@ -30,31 +39,38 @@ export function VaultSwitcher() {
   const [adding, setAdding] = useState(false);
 
   return (
-    <SidebarMenu>
+    <SidebarMenu className="notebook-vault-menu">
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <BookOpen className="size-4" />
-              </div>
-              <div className="grid flex-1 text-left leading-tight">
-                <span className="truncate font-medium">
+            <SidebarMenuButton size="lg" className="notebook-vault-switcher">
+              <div className="min-w-0 flex-1 text-left">
+                <span className="notebook-vault-eyebrow">Huidig logboek</span>
+                <span className="notebook-vault-name">
                   <VaultName root={source.root} />
                 </span>
-                <span className="truncate text-xs text-muted-foreground">{folderName(source.root)}</span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              <ChevronDown className="notebook-vault-chevron" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-(--radix-dropdown-menu-trigger-width) min-w-56">
-            <DropdownMenuLabel className="text-xs text-muted-foreground">Logboeken</DropdownMenuLabel>
+          <DropdownMenuContent
+            align="start"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56"
+          >
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Logboeken
+            </DropdownMenuLabel>
             <DropdownMenuRadioGroup
               value={source.root}
               onValueChange={(root) => switchVault(() => activateVault(root))}
             >
               {registry.vaults.map((root) => (
-                <DropdownMenuRadioItem key={root} value={root} disabled={!registry.managed} title={root}>
+                <DropdownMenuRadioItem
+                  key={root}
+                  value={root}
+                  disabled={!registry.managed}
+                  title={root}
+                >
                   <VaultName root={root} />
                 </DropdownMenuRadioItem>
               ))}
@@ -73,7 +89,9 @@ export function VaultSwitcher() {
               </Link>
             </DropdownMenuItem>
             {registry.managed && (
-              <DropdownMenuItem onSelect={() => switchVault(() => removeVault(source.root))}>
+              <DropdownMenuItem
+                onSelect={() => switchVault(() => removeVault(source.root))}
+              >
                 <FolderMinus />
                 Uit lijst verwijderen
               </DropdownMenuItem>

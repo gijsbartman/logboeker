@@ -1,0 +1,241 @@
+.vault-eyebrow {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.welcome-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 100svh;
+}
+
+.welcome-intro {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 48px clamp(32px, 5vw, 88px) 32px;
+  border-right: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 55%, var(--background));
+}
+
+.welcome-heading {
+  margin-top: clamp(48px, 8vh, 100px);
+}
+
+.welcome-heading h1 {
+  margin: 20px 0 24px;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(42px, 4.5vw, 76px);
+  font-weight: 400;
+  line-height: 1.06;
+  letter-spacing: -0.055em;
+}
+
+.welcome-footnote {
+  margin-top: auto;
+  padding-top: 32px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.welcome-actions {
+  align-self: center;
+  padding: 48px clamp(28px, 5vw, 80px);
+}
+
+.welcome-section + .welcome-section {
+  margin-top: 36px;
+  padding-top: 36px;
+  border-top: 1px solid var(--border);
+}
+
+.vault-section-number {
+  margin-top: 7px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.vault-section-title {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 25px;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1.25;
+}
+
+.vault-form .vault-form-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 22px 18px;
+}
+
+.vault-form-full {
+  grid-column: 1 / -1;
+}
+
+.vault-form [data-slot="field-label"] {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.vault-form [data-slot="input"] {
+  height: 38px;
+  border-radius: 2px;
+  background-color: color-mix(in srgb, var(--background) 80%, var(--card));
+}
+
+.vault-form [data-slot="field-description"] {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.journal-study {
+  position: relative;
+  width: 100%;
+  max-width: 390px;
+  height: 280px;
+  margin: 46px auto 4px;
+}
+
+.journal-study-sheet {
+  position: absolute;
+  width: 78%;
+  height: 230px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+
+.journal-study-sheet-back {
+  top: 18px;
+  left: 6%;
+  transform: rotate(-9deg);
+  background: color-mix(in srgb, var(--foreground) 8%, var(--background));
+}
+
+.journal-study-sheet-front {
+  top: 9px;
+  left: 15%;
+  padding: 23px 25px;
+  transform: rotate(5deg);
+  background: var(--card);
+  box-shadow: 0 14px 25px -20px
+    color-mix(in srgb, var(--foreground) 25%, transparent);
+}
+
+.journal-study-sheet-front::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: 29px;
+  width: 16px;
+  height: 47px;
+  background: var(--primary);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+}
+
+.journal-study-topline,
+.journal-study-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted-foreground);
+  font-size: 8px;
+  letter-spacing: 0.045em;
+}
+
+.journal-study-topline {
+  padding-right: 28px;
+}
+
+.journal-study-title {
+  margin: 19px 0 20px;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 25px;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+
+.journal-study-title em {
+  color: var(--primary);
+}
+
+.journal-study-rule {
+  height: 13px;
+  border-top: 1px solid var(--border);
+}
+
+.journal-study-footer {
+  margin-top: 4px;
+  font-size: 7px;
+}
+
+.journal-study-note {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted-foreground);
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 14px;
+  font-style: italic;
+  transform: rotate(-5deg);
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.65fr) minmax(0, 1fr);
+  gap: 24px;
+  padding: 19px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+@media (max-width: 800px) {
+  .welcome-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .welcome-intro {
+    padding: 28px 28px 34px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .welcome-heading {
+    margin-top: 42px;
+  }
+
+  .welcome-heading h1 {
+    font-size: clamp(42px, 8vw, 64px);
+  }
+
+  .journal-study {
+    display: none;
+  }
+
+  .welcome-footnote {
+    padding-top: 28px;
+  }
+
+  .welcome-actions {
+    padding: 36px 28px 48px;
+  }
+}
+
+@media (max-width: 420px) {
+  .vault-form .vault-form-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .settings-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+}

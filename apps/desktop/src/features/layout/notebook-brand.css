@@ -1,0 +1,32 @@
+.notebook-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.notebook-brand-mark {
+  width: 28px;
+  height: 34px;
+  flex-shrink: 0;
+  color: var(--primary);
+  transform: rotate(-5deg);
+}
+
+.notebook-brand-name {
+  display: block;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 29px;
+  letter-spacing: -1.3px;
+  line-height: 1;
+}
+
+.notebook-brand-name > span {
+  color: var(--primary);
+}
+
+.notebook-brand-caption {
+  margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  letter-spacing: 0.015em;
+}

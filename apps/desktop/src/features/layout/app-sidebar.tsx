@@ -16,12 +16,21 @@ import { isFiltering } from "@/features/filters/search";
 import { useFilters } from "@/features/filters/use-filters";
 import { VaultSwitcher } from "@/features/vaults/vault-switcher";
 import { useUiStore, type SidebarTab } from "@/lib/ui-store";
+import { NotebookBrand } from "./notebook-brand";
+import "./sidebar.css";
 
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const dark = resolvedTheme === "dark";
   return (
-    <Button variant="ghost" size="icon" aria-label="Thema wisselen" onClick={() => setTheme(dark ? "light" : "dark")}>
+    <Button
+      variant="ghost"
+      size="icon"
+      className="notebook-theme-toggle"
+      aria-label="Thema wisselen"
+      title={dark ? "Licht thema" : "Donker thema"}
+      onClick={() => setTheme(dark ? "light" : "dark")}
+    >
       {dark ? <Sun /> : <Moon />}
     </Button>
   );
@@ -32,29 +41,42 @@ export function AppSidebar() {
   const { sidebarTab, setSidebarTab } = useUiStore();
 
   return (
-    <Sidebar>
-      <SidebarHeader className="gap-3">
+    <Sidebar className="notebook-sidebar">
+      <SidebarHeader className="notebook-sidebar-header">
+        <NotebookBrand />
         <VaultSwitcher />
-        <Tabs value={sidebarTab} onValueChange={(tab) => setSidebarTab(tab as SidebarTab)}>
-          <TabsList className="w-full">
+        <Tabs
+          className="notebook-sidebar-tabs"
+          value={sidebarTab}
+          onValueChange={(tab) => setSidebarTab(tab as SidebarTab)}
+        >
+          <TabsList variant="line" className="notebook-sidebar-tab-list">
             <TabsTrigger value="filters">Filters</TabsTrigger>
             <TabsTrigger value="bestanden">Bestanden</TabsTrigger>
           </TabsList>
         </Tabs>
       </SidebarHeader>
 
-      <SidebarContent role="region" aria-label={sidebarTab === "filters" ? "Filters" : "Bestanden"}>
+      <SidebarContent
+        className="notebook-sidebar-content"
+        role="region"
+        aria-label={sidebarTab === "filters" ? "Filters" : "Bestanden"}
+      >
         {sidebarTab === "filters" ? <FilterGroups /> : <VaultFileTree />}
       </SidebarContent>
 
-      <SidebarFooter className="flex-row items-center">
+      <SidebarFooter className="notebook-sidebar-footer">
         {sidebarTab === "filters" && (
-          <SidebarMenuButton disabled={!isFiltering(filters.search)} onClick={filters.reset}>
+          <SidebarMenuButton
+            className="notebook-filter-reset"
+            disabled={!isFiltering(filters.search)}
+            onClick={filters.reset}
+          >
             <RotateCcw />
             Filters wissen
           </SidebarMenuButton>
         )}
-        <div className="ml-auto">
+        <div className="notebook-sidebar-colophon">
           <ThemeToggle />
         </div>
       </SidebarFooter>

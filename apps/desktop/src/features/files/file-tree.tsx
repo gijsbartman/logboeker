@@ -1,9 +1,20 @@
 import { ENTRY_DIRS } from "@logboeker/core";
 import { PATHS } from "@logboeker/vault";
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, File, FileText, Folder, Paperclip, Settings } from "lucide-react";
+import {
+  ChevronRight,
+  File,
+  FileText,
+  Folder,
+  Paperclip,
+  Settings,
+} from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -23,10 +34,18 @@ type FolderProps = {
   children: ReactNode;
 };
 
-function TreeFolder({ name, count, defaultOpen = false, children }: FolderProps) {
+function TreeFolder({
+  name,
+  count,
+  defaultOpen = false,
+  children,
+}: FolderProps) {
   return (
     <SidebarMenuItem>
-      <Collapsible defaultOpen={defaultOpen} className="group/folder [&[data-state=open]>button>svg:first-child]:rotate-90">
+      <Collapsible
+        defaultOpen={defaultOpen}
+        className="group/folder [&[data-state=open]>button>svg:first-child]:rotate-90"
+      >
         <CollapsibleTrigger asChild>
           <SidebarMenuButton>
             <ChevronRight className="transition-transform" />
@@ -75,27 +94,48 @@ export function VaultFileTree() {
   const evidence = entries.filter((e) => e.kind === "bewijs");
 
   return (
-    <SidebarGroup>
+    <SidebarGroup className="notebook-file-tree">
       <SidebarGroupContent>
         <SidebarMenu aria-label="Bestanden">
           <FileTree.Folder name="logboek" defaultOpen>
-            <FileTree.Folder name={baseName(ENTRY_DIRS.log)} count={logs.length} defaultOpen>
+            <FileTree.Folder
+              name={baseName(ENTRY_DIRS.log)}
+              count={logs.length}
+              defaultOpen
+            >
               {logs.map((entry) => (
-                <FileTree.File key={entry.id} id={entry.id} icon={FileText} title={entry.title}>
+                <FileTree.File
+                  key={entry.id}
+                  id={entry.id}
+                  icon={FileText}
+                  title={entry.title}
+                >
                   {`${baseName(entry.id)}.md`}
                 </FileTree.File>
               ))}
             </FileTree.Folder>
-            <FileTree.Folder name={baseName(ENTRY_DIRS.bewijs)} count={evidence.length}>
+            <FileTree.Folder
+              name={baseName(ENTRY_DIRS.bewijs)}
+              count={evidence.length}
+            >
               {evidence.map((entry) => (
-                <FileTree.File key={entry.id} id={entry.id} icon={FileText} title={entry.title}>
+                <FileTree.File
+                  key={entry.id}
+                  id={entry.id}
+                  icon={FileText}
+                  title={entry.title}
+                >
                   {`${baseName(entry.id)}.md`}
                 </FileTree.File>
               ))}
             </FileTree.Folder>
             <FileTree.Folder name={baseName(PATHS.files)} count={files.length}>
               {files.map((name) => (
-                <FileTree.File key={name} id={`${PATHS.files}/${name}`} icon={Paperclip}>
+                <FileTree.File
+                  key={name}
+                  id={`${PATHS.files}/${name}`}
+                  icon={Paperclip}
+                >
                   {name}
                 </FileTree.File>
               ))}
