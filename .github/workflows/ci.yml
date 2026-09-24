@@ -65,6 +65,9 @@ jobs:
   changes:
     name: Detect Tauri changes
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       tauri: ${{ github.event_name == 'push' || steps.filter.outputs.tauri }}
     steps:
