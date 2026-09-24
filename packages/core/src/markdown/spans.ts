@@ -120,3 +120,14 @@ export function wrapEvidenceSpans(node: Nodes) {
   for (const match of findMatches(children).reverse()) wrap(children, match);
   for (const child of parent.children) wrapEvidenceSpans(child as Nodes);
 }
+
+type SpanLabels = Pick<EvidenceSpan, "vaardigheden" | "beroepstaken" | "niveau"> & { unknownClasses?: string[] };
+
+export function formatSpanAttrs({ vaardigheden, beroepstaken, unknownClasses = [], niveau }: SpanLabels): string {
+  return [
+    ...vaardigheden.map((v) => `.${v}`),
+    ...beroepstaken.map((b) => `.${BEROEPSTAAK_PREFIX}${b}`),
+    ...unknownClasses.map((c) => `.${c}`),
+    ...(niveau === null ? [] : [`niveau=${niveau}`]),
+  ].join(" ");
+}

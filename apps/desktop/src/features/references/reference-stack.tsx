@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { createContext, useContext, type ComponentProps } from "react";
 import { PATHS } from "@logboeker/vault";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Attachment } from "@/features/attachments/attachment";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Entry } from "@/features/entries/entry";
@@ -47,13 +47,7 @@ function Header({ className, ...props }: ComponentProps<"header">) {
 function CloseButton({ id, label }: { id: string; label: string }) {
   const { close } = useStack();
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      aria-label={`${label} sluiten`}
-      onClick={() => close(id)}
-      className="col-start-2 row-span-2 row-start-1 self-start justify-self-end"
-    >
+    <Button variant="ghost" size="icon" aria-label={`${label} sluiten`} onClick={() => close(id)}>
       <X />
     </Button>
   );
@@ -65,7 +59,10 @@ function Item({ entry }: { entry: EntryModel }) {
       <Entry.Header>
         <Entry.Title />
         <Entry.Meta />
-        <CloseButton id={entry.id} label={entry.title} />
+        <Entry.Actions>
+          <Entry.EditButton />
+          <CloseButton id={entry.id} label={entry.title} />
+        </Entry.Actions>
       </Entry.Header>
       <Entry.Body />
       <Entry.Attachments />
@@ -83,7 +80,9 @@ function FileItem({ name }: { name: string }) {
       <CardHeader>
         <CardTitle className="truncate font-mono text-sm">{name}</CardTitle>
         <CardDescription>Bijlage</CardDescription>
-        <CloseButton id={`${PATHS.files}/${name}`} label={name} />
+        <CardAction>
+          <CloseButton id={`${PATHS.files}/${name}`} label={name} />
+        </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
         <Attachment.Root name={name} url={fileUrl(name)} defaultOpen>

@@ -5,6 +5,7 @@ export interface SplitSource {
   body: string;
   yamlStart: number;
   yamlEnd: number;
+  bodyStart: number;
 }
 
 const OPEN = /^---\r?\n/;
@@ -14,18 +15,25 @@ export function splitFrontmatter(source: string): SplitSource {
   const open = OPEN.exec(source);
   const close = open && CLOSE.exec(source.slice(open[0].length));
   if (!open || !close) {
-    return { yaml: null, body: source, yamlStart: 0, yamlEnd: 0 };
+    return { yaml: null, body: source, yamlStart: 0, yamlEnd: 0, bodyStart: 0 };
   }
 
   const yamlStart = open[0].length;
   const yamlEnd = yamlStart + close.index + close[1]!.length;
-  const bodyStart = yamlStart + close.index + close[0].length;
+  const afterFence = yamlStart + close.index + close[0].length;
+  const bodyStart = afterFence + /^(\r?\n)*/.exec(source.slice(afterFence))![0].length;
   return {
     yaml: source.slice(yamlStart, yamlEnd),
-    body: source.slice(bodyStart).replace(/^(\r?\n)+/, ""),
+    body: source.slice(bodyStart),
     yamlStart,
     yamlEnd,
+    bodyStart,
   };
+}
+
+export function replaceBody(source: string, body: string): string {
+  const split = splitFrontmatter(source);
+  return source.slice(0, split.bodyStart) + body;
 }
 
 export type FrontmatterRead =

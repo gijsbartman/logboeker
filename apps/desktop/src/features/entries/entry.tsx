@@ -1,10 +1,13 @@
 import { VAARDIGHEID_LABELS, type Entry as EntryModel } from "@logboeker/core";
 import { cn } from "cn";
 import { useState, type ComponentProps, type ReactNode } from "react";
+import { Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Attachment } from "@/features/attachments/attachment";
 import { useFilters } from "@/features/filters/use-filters";
+import { EntryEditor } from "@/features/editor/entry-editor";
 import { MarkdownBody } from "@/features/markdown/markdown-body";
 import { TagToggle } from "@/features/filters/tag-toggle";
 import { SkillDot } from "@/features/skills/skill-badge";
@@ -16,12 +19,19 @@ type RootProps = ComponentProps<typeof Card> & { entry: EntryModel };
 
 function Root({ entry, className, children, ...props }: RootProps) {
   const [openFiles, setOpenFiles] = useState<string[]>([]);
+  const [editing, setEditing] = useState(false);
   const toggleFile = (name: string) =>
     setOpenFiles((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]));
 
   return (
-    <EntryContext.Provider value={{ entry, openFiles, toggleFile }}>
-      <Card data-slot="entry" data-kind={entry.kind} className={cn("gap-4", className)} {...props}>
+    <EntryContext.Provider value={{ entry, openFiles, toggleFile, editing, setEditing }}>
+      <Card
+        data-slot="entry"
+        data-kind={entry.kind}
+        data-editing={editing}
+        className={cn("gap-4 data-[editing=true]:ring-2 data-[editing=true]:ring-ring/40", className)}
+        {...props}
+      >
         {children}
       </Card>
     </EntryContext.Provider>
@@ -49,20 +59,30 @@ function Meta({ className, ...props }: ComponentProps<typeof CardDescription>) {
   );
 }
 
-function Kind(props: ComponentProps<typeof CardAction>) {
+function Actions({ className, ...props }: ComponentProps<typeof CardAction>) {
+  return <CardAction className={cn("flex items-center gap-1", className)} {...props} />;
+}
+
+function Kind() {
   const { entry } = useEntry();
+  return <Badge variant={entry.kind === "bewijs" ? "default" : "outline"}>{entry.kind === "bewijs" ? "Bewijs" : "Log"}</Badge>;
+}
+
+function EditButton() {
+  const { entry, editing, setEditing } = useEntry();
+  if (editing) return null;
   return (
-    <CardAction {...props}>
-      <Badge variant={entry.kind === "bewijs" ? "default" : "outline"}>{entry.kind === "bewijs" ? "Bewijs" : "Log"}</Badge>
-    </CardAction>
+    <Button variant="ghost" size="icon" aria-label={`${entry.title} bewerken`} onClick={() => setEditing(true)}>
+      <Pencil />
+    </Button>
   );
 }
 
 function Body({ className, ...props }: ComponentProps<typeof CardContent>) {
-  const { entry } = useEntry();
+  const { entry, editing } = useEntry();
   return (
     <CardContent className={className} {...props}>
-      <MarkdownBody markdown={entry.body} />
+      {editing ? <EntryEditor /> : <MarkdownBody markdown={entry.body} />}
     </CardContent>
   );
 }
@@ -100,10 +120,10 @@ function TagRow({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function Tags({ className, ...props }: ComponentProps<typeof CardFooter>) {
-  const { entry } = useEntry();
+  const { entry, editing } = useEntry();
   const filters = useFilters();
   const skills = entry.vaardigheden;
-  if (entry.doelen.length === 0 && skills.length === 0) return null;
+  if (editing || (entry.doelen.length === 0 && skills.length === 0)) return null;
 
   return (
     <CardFooter className={cn("flex-col items-stretch gap-2 border-t", className)} {...props}>
@@ -134,4 +154,4 @@ function Tags({ className, ...props }: ComponentProps<typeof CardFooter>) {
   );
 }
 
-export const Entry = { Root, Header: CardHeader, Title, Meta, Kind, Body, Attachments, Tags };
+export const Entry = { Root, Header: CardHeader, Title, Meta, Actions, Kind, EditButton, Body, Attachments, Tags };

@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { expect, test } from "vitest";
-import { createMemoryFs, loadVault, missingVaultPaths, scaffoldVault } from "../src";
+import { ConflictError, createMemoryFs, loadVault, missingVaultPaths, saveSource, scaffoldVault } from "../src";
 
 const ROOT = join(import.meta.dirname, "../../../fixtures/vault");
 
@@ -114,4 +114,18 @@ test("hidden files are not attachments, and an unreadable cache does not block l
 
   const vault = await loadVault(fs);
   expect(vault.files).toEqual(["deck.pptx"]);
+});
+
+test("saving writes when the file is unchanged since it was read", async () => {
+  const fs = createMemoryFs({ "logboek/daily/a.md": "old" });
+  await saveSource(fs, "logboek/daily/a.md", "new", "old");
+  expect(await fs.readText("logboek/daily/a.md")).toBe("new");
+});
+
+test("saving refuses when the file changed on disk, and returns what is there now", async () => {
+  const fs = createMemoryFs({ "logboek/daily/a.md": "written by a skill" });
+  const error = await saveSource(fs, "logboek/daily/a.md", "mine", "old").catch((e: unknown) => e);
+  expect(error).toBeInstanceOf(ConflictError);
+  expect((error as ConflictError).current).toBe("written by a skill");
+  expect(await fs.readText("logboek/daily/a.md")).toBe("written by a skill");
 });

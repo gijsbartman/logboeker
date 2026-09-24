@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, test } from "vitest";
-import { readFrontmatter, splitFrontmatter, updateFrontmatter } from "../src";
+import { readFrontmatter, replaceBody, splitFrontmatter, updateFrontmatter } from "../src";
 
 const source = "---\ndate: 2026-09-17\n# own note\ndoelen: [a, b]\nextra: kept\n---\n\n# Title\n\nBody *text*.\n";
 
@@ -53,5 +53,20 @@ describe("updateFrontmatter", () => {
         expect(updated.endsWith(`---\n${body}`)).toBe(true);
       }),
     );
+  });
+});
+
+describe("replaceBody", () => {
+  test("keeps the frontmatter and the blank line under it byte for byte", () => {
+    expect(replaceBody(source, "# New\n")).toBe("---\ndate: 2026-09-17\n# own note\ndoelen: [a, b]\nextra: kept\n---\n\n# New\n");
+  });
+
+  test("works without frontmatter", () => {
+    expect(replaceBody("# Old\n", "# New\n")).toBe("# New\n");
+  });
+
+  test("the body offset points at the body", () => {
+    const split = splitFrontmatter(source);
+    expect(source.slice(split.bodyStart)).toBe(split.body);
   });
 });

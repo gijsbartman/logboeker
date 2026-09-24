@@ -23,5 +23,5 @@ export function renderApp(url = "/") {
       </QueryClientProvider>
     </ThemeProvider>,
   );
-  return { router, user: userEvent.setup() };
+  return { router, queryClient, user: userEvent.setup() };
 }
