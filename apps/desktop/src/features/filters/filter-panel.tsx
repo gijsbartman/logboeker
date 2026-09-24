@@ -1,8 +1,11 @@
 import { cn } from "cn";
 import { ChevronDown } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -23,18 +26,19 @@ type GroupProps = {
 
 function ActiveCount({ count }: { count?: number }) {
   if (!count) return null;
-  return (
-    <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
-      {count}
-    </Badge>
-  );
+  return <span className="notebook-filter-active-count">{count}</span>;
 }
 
-function Group({ label, activeCount, collapsible = false, children }: GroupProps) {
+function Group({
+  label,
+  activeCount,
+  collapsible = false,
+  children,
+}: GroupProps) {
   if (!collapsible) {
     return (
-      <SidebarGroup>
-        <SidebarGroupLabel>
+      <SidebarGroup className="notebook-filter-group">
+        <SidebarGroupLabel className="notebook-filter-label">
           {label}
           <ActiveCount count={activeCount} />
         </SidebarGroupLabel>
@@ -45,8 +49,8 @@ function Group({ label, activeCount, collapsible = false, children }: GroupProps
 
   return (
     <Collapsible defaultOpen className="group/collapsible">
-      <SidebarGroup>
-        <SidebarGroupLabel asChild>
+      <SidebarGroup className="notebook-filter-group">
+        <SidebarGroupLabel className="notebook-filter-label" asChild>
           <CollapsibleTrigger>
             {label}
             <ActiveCount count={activeCount} />
@@ -70,10 +74,20 @@ type OptionProps = Omit<ComponentProps<typeof SidebarMenuButton>, "onClick"> & {
 function Option({ active, count, onToggle, children, ...props }: OptionProps) {
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton isActive={active} aria-pressed={active} onClick={onToggle} {...props}>
+      <SidebarMenuButton
+        className="notebook-filter-option"
+        isActive={active}
+        aria-pressed={active}
+        onClick={onToggle}
+        {...props}
+      >
         {children}
       </SidebarMenuButton>
-      {count !== undefined && <SidebarMenuBadge>{count}</SidebarMenuBadge>}
+      {count !== undefined && (
+        <SidebarMenuBadge className="notebook-filter-count">
+          {count}
+        </SidebarMenuBadge>
+      )}
     </SidebarMenuItem>
   );
 }
@@ -92,10 +106,16 @@ function Chips({ className, ...props }: ChipsProps) {
       type="multiple"
       variant="outline"
       size="sm"
-      className={cn("flex-wrap justify-start px-2", className)}
+      className={cn("notebook-filter-chips flex-wrap justify-start", className)}
       {...props}
     />
   );
 }
 
-export const FilterPanel = { Group, Options: SidebarMenu, Option, Chips, Chip: ToggleGroupItem };
+export const FilterPanel = {
+  Group,
+  Options: SidebarMenu,
+  Option,
+  Chips,
+  Chip: ToggleGroupItem,
+};

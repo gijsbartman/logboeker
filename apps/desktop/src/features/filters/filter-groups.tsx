@@ -1,4 +1,9 @@
-import { NIVEAUS, VAARDIGHEDEN, VAARDIGHEID_LABELS, type EntryKind } from "@logboeker/core";
+import {
+  NIVEAUS,
+  VAARDIGHEDEN,
+  VAARDIGHEID_LABELS,
+  type EntryKind,
+} from "@logboeker/core";
 import { Switch } from "@/components/ui/switch";
 import { SkillDot } from "@/features/skills/skill-badge";
 import { humanise } from "@/lib/format";
@@ -15,11 +20,16 @@ export function FilterGroups() {
   const { entries, doelen } = useVault();
   const filters = useFilters();
   const { search } = filters;
-  const count = (predicate: (e: (typeof entries)[number]) => boolean) => entries.filter(predicate).length;
+  const count = (predicate: (e: (typeof entries)[number]) => boolean) =>
+    entries.filter(predicate).length;
 
   return (
     <>
-      <FilterPanel.Group label="Vaardigheid" activeCount={search.vaardigheid.length} collapsible>
+      <FilterPanel.Group
+        label="Vaardigheid"
+        activeCount={search.vaardigheid.length}
+        collapsible
+      >
         <FilterPanel.Options>
           {VAARDIGHEDEN.map((skill) => (
             <FilterPanel.Option
@@ -36,7 +46,11 @@ export function FilterGroups() {
       </FilterPanel.Group>
 
       {doelen.length > 0 && (
-        <FilterPanel.Group label="Doel" activeCount={search.doel.length} collapsible>
+        <FilterPanel.Group
+          label="Doel"
+          activeCount={search.doel.length}
+          collapsible
+        >
           <FilterPanel.Options>
             {doelen.map((doel) => (
               <FilterPanel.Option
@@ -49,10 +63,12 @@ export function FilterGroups() {
               </FilterPanel.Option>
             ))}
           </FilterPanel.Options>
-          <label className="mt-2 flex items-center gap-2 px-2 text-sm">
+          <label className="notebook-group-toggle">
             <Switch
               checked={search.groep === "doel"}
-              onCheckedChange={(checked) => filters.setGroup(checked ? "doel" : "datum")}
+              onCheckedChange={(checked) =>
+                filters.setGroup(checked ? "doel" : "datum")
+              }
             />
             Groepeer op doel
           </label>
@@ -77,7 +93,9 @@ export function FilterGroups() {
         <FilterPanel.Chips
           aria-label="Soort"
           value={search.soort}
-          onValueChange={(values) => filters.set("soort", values as EntryKind[])}
+          onValueChange={(values) =>
+            filters.set("soort", values as EntryKind[])
+          }
         >
           {KINDS.map((kind) => (
             <FilterPanel.Chip key={kind.value} value={kind.value}>

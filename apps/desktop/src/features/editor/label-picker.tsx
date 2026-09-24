@@ -1,4 +1,9 @@
-import { NIVEAUS, VAARDIGHEDEN, VAARDIGHEID_LABELS, type Vaardigheid } from "@logboeker/core";
+import {
+  NIVEAUS,
+  VAARDIGHEDEN,
+  VAARDIGHEID_LABELS,
+  type Vaardigheid,
+} from "@logboeker/core";
 import type { Labels } from "@logboeker/editor";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,19 +21,31 @@ type LabelPickerProps = {
 
 export function LabelPicker({ initial, onApply, onRemove }: LabelPickerProps) {
   const { criteria } = useVault();
-  const [skills, setSkills] = useState<Vaardigheid[]>(initial?.vaardigheden ?? []);
+  const [skills, setSkills] = useState<Vaardigheid[]>(
+    initial?.vaardigheden ?? [],
+  );
   const [niveau, setNiveau] = useState<number | null>(initial?.niveau ?? null);
 
   const toggle = (skill: Vaardigheid, checked: boolean) =>
-    setSkills((prev) => (checked ? [...prev, skill] : prev.filter((s) => s !== skill)));
+    setSkills((prev) =>
+      checked ? [...prev, skill] : prev.filter((s) => s !== skill),
+    );
 
   return (
-    <div className="space-y-4">
-      <fieldset className="space-y-1.5">
-        <legend className="mb-1.5 text-xs font-medium text-muted-foreground">Vaardigheid</legend>
+    <div className="label-picker space-y-5">
+      <fieldset className="space-y-0.5">
+        <legend className="mb-2 text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+          Vaardigheid
+        </legend>
         {VAARDIGHEDEN.map((skill) => (
-          <label key={skill} className="flex cursor-pointer items-center gap-2 text-sm">
-            <Checkbox checked={skills.includes(skill)} onCheckedChange={(checked) => toggle(skill, checked === true)} />
+          <label
+            key={skill}
+            className="-mx-2 flex cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-sm transition-colors hover:bg-muted has-[[data-state=checked]]:bg-muted"
+          >
+            <Checkbox
+              checked={skills.includes(skill)}
+              onCheckedChange={(checked) => toggle(skill, checked === true)}
+            />
             <SkillDot vaardigheid={skill} />
             {VAARDIGHEID_LABELS[skill]}
           </label>
@@ -36,17 +53,24 @@ export function LabelPicker({ initial, onApply, onRemove }: LabelPickerProps) {
       </fieldset>
 
       <fieldset>
-        <legend className="mb-1.5 text-xs font-medium text-muted-foreground">Niveau</legend>
+        <legend className="mb-2 text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+          Niveau
+        </legend>
         <ToggleGroup
           type="single"
           variant="outline"
           size="sm"
           aria-label="Niveau"
+          className="w-full"
           value={niveau === null ? "" : String(niveau)}
           onValueChange={(value) => setNiveau(value ? Number(value) : null)}
         >
           {NIVEAUS.map((n) => (
-            <ToggleGroupItem key={n} value={String(n)}>
+            <ToggleGroupItem
+              key={n}
+              value={String(n)}
+              className="flex-1 font-mono text-xs"
+            >
               N{n}
             </ToggleGroupItem>
           ))}
@@ -67,7 +91,7 @@ export function LabelPicker({ initial, onApply, onRemove }: LabelPickerProps) {
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 border-t pt-4">
         {onRemove && (
           <Button variant="ghost" size="sm" onClick={onRemove}>
             Label verwijderen

@@ -6,10 +6,13 @@ import Markdown, { type Components } from "react-markdown";
 import { FileReference } from "@/features/attachments/file-reference";
 import { EntryReference } from "@/features/references/entry-reference";
 import { EvidenceSpan } from "@/features/skills/evidence-span";
+import "@/features/editorial.css";
 
 function remarkDropTitle() {
   return (tree: Root) => {
-    const index = tree.children.findIndex((node) => node.type === "heading" && node.depth === 1);
+    const index = tree.children.findIndex(
+      (node) => node.type === "heading" && node.depth === 1,
+    );
     if (index !== -1) tree.children.splice(index, 1);
   };
 }
@@ -25,10 +28,28 @@ type MarkdownBodyProps = ComponentProps<"div"> & {
   dropTitle?: boolean;
 };
 
-export function MarkdownBody({ markdown, dropTitle = true, className, ...props }: MarkdownBodyProps) {
+export function MarkdownBody({
+  markdown,
+  dropTitle = true,
+  className,
+  ...props
+}: MarkdownBodyProps) {
   return (
-    <div className={cn("prose prose-sm dark:prose-invert max-w-none", className)} {...props}>
-      <Markdown remarkPlugins={dropTitle ? [...logboekRemarkPlugins, remarkDropTitle] : logboekRemarkPlugins} components={components}>
+    <div
+      className={cn(
+        "reading-copy prose prose-sm dark:prose-invert max-w-none",
+        className,
+      )}
+      {...props}
+    >
+      <Markdown
+        remarkPlugins={
+          dropTitle
+            ? [...logboekRemarkPlugins, remarkDropTitle]
+            : logboekRemarkPlugins
+        }
+        components={components}
+      >
         {markdown}
       </Markdown>
     </div>

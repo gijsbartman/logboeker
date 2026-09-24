@@ -1,20 +1,34 @@
 import type { SourceSpan } from "@logboeker/core";
-import { inCheckIn, labelRange, livePreview, mentions, relabelSpan, spanAt, unlabelSpan, type Labels } from "@logboeker/editor";
+import {
+  inCheckIn,
+  labelRange,
+  livePreview,
+  mentions,
+  relabelSpan,
+  spanAt,
+  unlabelSpan,
+  type Labels,
+} from "@logboeker/editor";
 import { markdown } from "@codemirror/lang-markdown";
 import { Prec } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import CodeMirror from "@uiw/react-codemirror";
-import { Tag } from "lucide-react";
+import { Check, Tag } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useEntry } from "@/features/entries/entry-context";
 import { useVault } from "@/lib/vault";
 import { DoelenField } from "./doelen-field";
 import { LabelPicker } from "./label-picker";
 import { mentionItems } from "./mention-items";
 import { useEntryDraft, type SaveStatus } from "./use-entry-draft";
+import "@/features/editorial.css";
 
 type Anchor = {
   top: number;
@@ -70,18 +84,27 @@ export function EntryEditor() {
       markdown(),
       EditorView.lineWrapping,
       livePreview({
-        resolveRef: (key) => latest.current.vault.resolver.resolve(key) !== null,
+        resolveRef: (key) =>
+          latest.current.vault.resolver.resolve(key) !== null,
         hasFile: (name) => latest.current.vault.files.includes(name),
       }),
       mentions(() => mentionItems(latest.current.vault)),
       Prec.high(
         keymap.of([
-          { key: "Mod-l", run: () => latest.current.anchor !== null && (setPicking(true), true) },
+          {
+            key: "Mod-l",
+            run: () =>
+              latest.current.anchor !== null && (setPicking(true), true),
+          },
           { key: "Escape", run: () => (latest.current.finish(), true) },
         ]),
       ),
       EditorView.updateListener.of((update) => {
-        if (update.selectionSet || update.docChanged || update.geometryChanged) {
+        if (
+          update.selectionSet ||
+          update.docChanged ||
+          update.geometryChanged
+        ) {
           setAnchor(wrapper.current && anchorFor(update.view, wrapper.current));
         }
       }),
@@ -92,7 +115,11 @@ export function EntryEditor() {
   const apply = (labels: Labels) => {
     const current = view.current;
     if (!current || !anchor) return;
-    current.dispatch(anchor.span ? relabelSpan(anchor.span, labels) : labelRange(anchor.from, anchor.to, labels));
+    current.dispatch(
+      anchor.span
+        ? relabelSpan(anchor.span, labels)
+        : labelRange(anchor.from, anchor.to, labels),
+    );
     setPicking(false);
     current.focus();
   };
@@ -106,7 +133,7 @@ export function EntryEditor() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="entry-editor space-y-4">
       <DoelenField
         value={entry.doelen}
         options={vault.doelen}
@@ -117,7 +144,10 @@ export function EntryEditor() {
         <Alert>
           <AlertTitle>Dit bestand is buiten de app gewijzigd</AlertTitle>
           <AlertDescription className="space-y-2">
-            <p>Bijvoorbeeld door een skill. Jouw wijzigingen zijn nog niet opgeslagen.</p>
+            <p>
+              Bijvoorbeeld door een skill. Jouw wijzigingen zijn nog niet
+              opgeslagen.
+            </p>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={draft.takeTheirs}>
                 Hun versie laden
@@ -130,7 +160,7 @@ export function EntryEditor() {
         </Alert>
       )}
 
-      <div ref={wrapper} className="relative rounded-md border bg-background">
+      <div ref={wrapper} className="editor-paper relative">
         <CodeMirror
           value={draft.body}
           onChange={draft.setBody}
@@ -148,7 +178,7 @@ export function EntryEditor() {
             autocompletion: false,
           }}
           aria-label={`${entry.title} bewerken`}
-          className="text-sm [&_.cm-content]:px-3 [&_.cm-content]:py-2 [&_.cm-editor]:outline-none"
+          className="editor-writing text-sm [&_.cm-editor]:outline-none"
         />
 
         {anchor && (
@@ -157,7 +187,7 @@ export function EntryEditor() {
               <Button
                 size="sm"
                 variant="secondary"
-                className="absolute z-10 h-7 -translate-y-full shadow-sm"
+                className="absolute z-10 h-7 -translate-y-full border border-border bg-popover shadow-sm"
                 style={{ top: anchor.top - 4, left: anchor.left }}
                 onMouseDown={(event) => event.preventDefault()}
               >
@@ -165,14 +195,19 @@ export function EntryEditor() {
                 {anchor.span ? "Label bewerken" : "Labelen"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="start" className="w-80">
+            <PopoverContent align="start" className="label-popover w-80 p-5">
               {anchor.checkIn ? (
                 <p className="text-sm text-muted-foreground">
-                  Dit is de check-in. Planning is geen bewijs, dus labels horen in de check-out.
+                  Dit is de check-in. Planning is geen bewijs, dus labels horen
+                  in de check-out.
                 </p>
               ) : (
                 <LabelPicker
-                  key={anchor.span ? `${anchor.span.from}` : `${anchor.from}-${anchor.to}`}
+                  key={
+                    anchor.span
+                      ? `${anchor.span.from}`
+                      : `${anchor.from}-${anchor.to}`
+                  }
                   initial={anchor.span?.attrs ?? null}
                   onApply={apply}
                   onRemove={anchor.span ? remove : undefined}
@@ -183,9 +218,18 @@ export function EntryEditor() {
         )}
       </div>
 
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="editor-status flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>⌘L labelen · @ verwijzen · Esc klaar</span>
-        <span aria-live="polite">{STATUS[draft.status]}</span>
+        <div className="ml-auto flex items-center gap-3">
+          <span aria-live="polite">{STATUS[draft.status]}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => latest.current.finish()}
+          >
+            <Check className="size-3.5" /> Klaar
+          </Button>
+        </div>
       </div>
     </div>
   );

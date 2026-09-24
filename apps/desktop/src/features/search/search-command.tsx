@@ -1,5 +1,5 @@
 import type { EntryKind } from "@logboeker/core";
-import { Search } from "lucide-react";
+import { ArrowUpRight, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import { useReferences } from "@/features/references/use-references";
 import { formatDate } from "@/lib/format";
 import { useVault } from "@/lib/vault";
 import { Highlight } from "./highlight";
+import "@/features/editorial.css";
 
 const GROUPS: { kind: EntryKind; heading: string }[] = [
   { kind: "log", heading: "Logs" },
@@ -48,30 +49,78 @@ export function SearchCommand() {
 
   return (
     <>
-      <Button variant="outline" size="sm" className="text-muted-foreground" onClick={() => setOpen(true)}>
-        <Search />
+      <Button
+        variant="ghost"
+        size="sm"
+        className="search-trigger h-9 gap-2.5 rounded-full px-3 text-muted-foreground"
+        onClick={() => setOpen(true)}
+      >
+        <Search className="size-3.5" />
         Zoeken
-        <Kbd>⌘K</Kbd>
+        <Kbd className="ml-3 bg-transparent text-[10px] text-muted-foreground/70">
+          ⌘K
+        </Kbd>
       </Button>
-      <CommandDialog open={open} onOpenChange={setOpen} title="Zoeken" description="Zoek in logs, bewijs en bijlagen">
-        <Command shouldFilter={false}>
-          <CommandInput value={query} onValueChange={setQuery} placeholder="Zoek in logs, bewijs en bijlagen…" />
+      <CommandDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Zoeken"
+        description="Zoek in logs, bewijs en bijlagen"
+        className="journal-search"
+      >
+        <div className="search-heading">
+          <span className="text-[10px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
+            Je archief
+          </span>
+          <p>Vind de draad terug.</p>
+        </div>
+        <Command shouldFilter={false} className="journal-search-command">
+          <CommandInput
+            value={query}
+            onValueChange={setQuery}
+            placeholder="Zoek in logs, bewijs en bijlagen…"
+          />
           <CommandList>
-            {query.trim() && <CommandEmpty>Niets gevonden.</CommandEmpty>}
+            {!query.trim() && (
+              <div className="search-empty">
+                <Search
+                  className="mb-3 size-5 text-primary/70"
+                  aria-hidden="true"
+                />
+                <p>Een gedachte, een doel, een moment.</p>
+                <span>Begin met typen om je logboek te doorzoeken.</span>
+              </div>
+            )}
+            {query.trim() && (
+              <CommandEmpty className="py-12 text-muted-foreground">
+                Niets gevonden.
+              </CommandEmpty>
+            )}
             {GROUPS.map(({ kind, heading }) => {
               const inGroup = hits.filter((hit) => hit.entry.kind === kind);
               if (inGroup.length === 0) return null;
               return (
                 <CommandGroup key={kind} heading={heading}>
                   {inGroup.map(({ entry, terms, snippet }) => (
-                    <CommandItem key={entry.id} value={entry.id} onSelect={select} className="flex-col items-start gap-0.5">
+                    <CommandItem
+                      key={entry.id}
+                      value={entry.id}
+                      onSelect={select}
+                      className="search-result flex-col items-start gap-1.5"
+                    >
                       <div className="flex w-full items-baseline justify-between gap-3">
-                        <span className="truncate font-medium">
+                        <span className="search-result-title truncate">
                           <Highlight text={entry.title} terms={terms} />
                         </span>
-                        <span className="shrink-0 text-xs text-muted-foreground">{formatDate(entry.date)}</span>
+                        <span className="flex shrink-0 items-center gap-3 text-[10px] text-muted-foreground">
+                          {formatDate(entry.date)}
+                          <ArrowUpRight
+                            className="size-3.5"
+                            aria-hidden="true"
+                          />
+                        </span>
                       </div>
-                      <p className="line-clamp-2 text-xs text-muted-foreground">
+                      <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                         <Highlight text={snippet} terms={terms} />
                       </p>
                     </CommandItem>
@@ -81,6 +130,14 @@ export function SearchCommand() {
             })}
           </CommandList>
         </Command>
+        <div className="search-footer flex items-center justify-between border-t text-[10px] text-muted-foreground">
+          <span>
+            <Kbd>↵</Kbd> openen
+          </span>
+          <span>
+            <Kbd>esc</Kbd> sluiten
+          </span>
+        </div>
       </CommandDialog>
     </>
   );
