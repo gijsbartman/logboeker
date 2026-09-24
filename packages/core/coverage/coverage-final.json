@@ -1,2 +1,0 @@
-{"/Users/gijsbartman/Documents/HU/logboeker/packages/core/src/vaardigheden.ts": {"path":"/Users/gijsbartman/Documents/HU/logboeker/packages/core/src/vaardigheden.ts","statementMap":{"0":{"start":{"line":3,"column":28},"end":{"line":14,"column":null}},"1":{"start":{"line":19,"column":2},"end":{"line":19,"column":null}}},"fnMap":{"0":{"name":"isVaardigheid","decl":{"start":{"line":18,"column":16},"end":{"line":18,"column":30}},"loc":{"start":{"line":18,"column":67},"end":{"line":20,"column":null}}}},"branchMap":{},"s":{"0":1,"1":2},"f":{"0":2},"b":{}}
-}
