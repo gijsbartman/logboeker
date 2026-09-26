@@ -38,7 +38,6 @@
   container: journal / inline-size;
 }
 .journal-page {
-  max-width: 1080px;
   margin-inline: auto;
   padding: 58px 60px 24px;
 }
