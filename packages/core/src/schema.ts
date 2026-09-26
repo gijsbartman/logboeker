@@ -1,12 +1,12 @@
 import { z } from "zod";
 
 // An empty YAML field (`doelen:`) parses as null.
-const list = z.preprocess(
+export const list = z.preprocess(
   (value) => (value == null ? [] : value),
   z.array(z.coerce.string().trim()).transform((items) => items.filter(Boolean)),
 );
 
-const isoDate = z.iso.date();
+export const isoDate = z.iso.date();
 
 export const frontmatterSchema = z.looseObject({
   date: isoDate.optional(),
@@ -29,6 +29,7 @@ export const configSchema = z.looseObject({
   rol: z.string().optional(),
   semesterstart: isoDate.optional(),
   sprintlengte_weken: z.number().int().positive().default(2),
+  semesterlengte_weken: z.number().int().positive().default(20),
   code_repo: z.string().optional(),
   tracker: z.string().optional(),
 });

@@ -20,6 +20,7 @@ const LABELS: Record<string, string> = {
   rol: "Rol",
   semesterstart: "Semesterstart",
   sprintlengte_weken: "Sprintlengte in weken",
+  semesterlengte_weken: "Semesterlengte in weken",
   code_repo: "Code-repository",
   tracker: "Tracker",
 };

@@ -1,14 +1,14 @@
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { DEFAULT_SEARCH, type FilterKey, type Search } from "./search";
 
-const route = getRouteApi("/_vault/");
+const route = getRouteApi("/_vault/_workspace");
 
 export function useFilters() {
   const search = route.useSearch();
-  const navigate = route.useNavigate();
+  const navigate = useNavigate();
 
   const update = (next: (prev: Search) => Partial<Search>) =>
-    navigate({ search: (prev) => ({ ...prev, ...next(prev) }), replace: true });
+    navigate({ to: ".", search: (prev) => ({ ...prev, ...next({ ...DEFAULT_SEARCH, ...prev }) }), replace: true });
 
   return {
     search,

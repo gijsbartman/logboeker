@@ -2,6 +2,7 @@ import { ENTRY_DIRS } from "@logboeker/core";
 import { PATHS } from "@logboeker/vault";
 import { Link } from "@tanstack/react-router";
 import {
+  CalendarRange,
   ChevronRight,
   File,
   FileText,
@@ -140,6 +141,14 @@ export function VaultFileTree() {
                 </FileTree.File>
               ))}
             </FileTree.Folder>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link to="/kalender" search={(prev) => prev}>
+                  <CalendarRange />
+                  {baseName(PATHS.roadmap)}
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </FileTree.Folder>
           <FileTree.Folder name="data">
             <SidebarMenuItem>
