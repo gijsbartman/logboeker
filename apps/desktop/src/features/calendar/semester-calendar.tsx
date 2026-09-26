@@ -8,7 +8,7 @@ import {
   type SemesterWeek,
 } from "@logboeker/core";
 import { CalendarOff, Diamond, Plus, TriangleAlert } from "lucide-react";
-import { useState, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,12 +28,12 @@ import { useFilters } from "@/features/filters/use-filters";
 import { useReferences } from "@/features/references/use-references";
 import { formatDate, formatShortDate, humanise } from "@/lib/format";
 import { useVault } from "@/lib/vault";
-import { ItemDialog, type ItemDraft } from "./roadmap-forms";
 import {
   itemLabel,
   itemPeriod,
   itemRef,
   today,
+  useCreateItem,
   useRoadmap,
 } from "./use-roadmap";
 import "./calendar.css";
@@ -109,8 +109,10 @@ function layoutBars(week: SemesterWeek, items: ItemVoortgang[]): Bar[] {
         voortgang,
         from: daysBetween(week.start, start > week.start ? start : week.start),
         to: daysBetween(week.start, eind < week.end ? eind : week.end),
-        before: start < week.start,
-        after: eind > week.end,
+        // Square edges only where the bar continues in a neighbouring week;
+        // a weekend on either side is not drawn, so the edge stays round.
+        before: start <= addDays(week.start, -3),
+        after: eind >= addDays(week.start, 7),
       };
     })
     .sort((a, b) => a.from - b.from || b.to - a.to);
@@ -126,7 +128,7 @@ function layoutBars(week: SemesterWeek, items: ItemVoortgang[]): Bar[] {
 
 export function SemesterCalendar() {
   const { config, entries, diagnostics } = useVault();
-  const [draft, setDraft] = useState<ItemDraft | null>(null);
+  const create = useCreateItem();
   const roadmap = useRoadmap();
   const { search } = useFilters();
   const { show } = useReferences();
@@ -213,7 +215,11 @@ export function SemesterCalendar() {
           )}
 
           <div className="calendar-toolbar">
-            <Button variant="outline" size="sm" onClick={() => setDraft({})}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => create({ titel: "Nieuw item", datum: now })}
+            >
               <Plus /> Nieuw item
             </Button>
             <span>of dubbelklik op een dag</span>
@@ -295,7 +301,7 @@ export function SemesterCalendar() {
                                     "button",
                                   )
                                 )
-                                  setDraft({ datum: date });
+                                  create({ titel: "Nieuw item", datum: date });
                               }}
                             >
                               <span className="calendar-date">
@@ -404,10 +410,11 @@ export function SemesterCalendar() {
                       type="button"
                       aria-label={`${slug} inplannen`}
                       onClick={() =>
-                        setDraft({
+                        create({
                           titel: humanise(slug),
+                          datum: now,
+                          tot: addDays(now, 7),
                           doel: slug,
-                          meerdaags: true,
                         })
                       }
                     >
@@ -419,12 +426,6 @@ export function SemesterCalendar() {
               </ul>
             </section>
           )}
-
-          <ItemDialog
-            open={draft !== null}
-            onOpenChange={(open) => !open && setDraft(null)}
-            draft={draft ?? undefined}
-          />
         </div>
       </ScrollArea>
     </div>

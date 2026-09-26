@@ -6,8 +6,10 @@ import {
 import { editRoadmapFile } from "@logboeker/vault";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { toast } from "sonner";
 import { useReferences } from "@/features/references/use-references";
 import { formatShortDate } from "@/lib/format";
+import { useUiStore } from "@/lib/ui-store";
 import { useVault, useVaultSource, vaultQuery } from "@/lib/vault";
 
 export const ITEM_PREFIX = "roadmap/item/";
@@ -50,7 +52,10 @@ export function useRoadmap() {
 export function useEditRoadmap() {
   const source = useVaultSource();
   const queryClient = useQueryClient();
+  // Each save reads, patches and writes the whole file, so saves run one
+  // after the other instead of overwriting each other.
   return useMutation({
+    scope: { id: `roadmap:${source.root}` },
     mutationFn: (edits: RoadmapEdit[]) => editRoadmapFile(source.fs, edits),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: vaultQuery(source).queryKey }),
@@ -79,4 +84,27 @@ export function useRemoveItem() {
         },
       }),
   };
+}
+
+// A new item is written straight away and opens in its card, ready to edit,
+// like adding an event in a calendar app.
+export function useCreateItem() {
+  const source = useVaultSource();
+  const queryClient = useQueryClient();
+  const edit = useEditRoadmap();
+  const { show } = useReferences();
+  const setEditing = useUiStore((state) => state.edit);
+
+  return (fields: Record<string, unknown>) =>
+    edit.mutate([{ action: "add", fields }], {
+      onSuccess: () => {
+        const vault = queryClient.getQueryData(vaultQuery(source).queryKey);
+        const indexes = vault?.roadmap.items.map((item) => item.index) ?? [];
+        if (indexes.length === 0) return;
+        const id = itemRef(Math.max(...indexes));
+        setEditing(id);
+        show(id);
+      },
+      onError: (error) => toast.error(error.message),
+    });
 }

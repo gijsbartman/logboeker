@@ -18,6 +18,7 @@ import { MarkdownBody } from "@/features/markdown/markdown-body";
 import { TagToggle } from "@/features/filters/tag-toggle";
 import { SkillDot } from "@/features/skills/skill-badge";
 import { formatDate, humanise } from "@/lib/format";
+import { useHoldHeight } from "@/features/references/hold-height";
 import { useVault } from "@/lib/vault";
 import { EntryContext, useEntry } from "./entry-context";
 
@@ -102,14 +103,18 @@ function Kind() {
 
 function EditButton() {
   const { entry, editing, setEditing } = useEntry();
+  const hold = useHoldHeight();
   if (editing) return null;
   return (
     <Button
       variant="ghost"
-      size="icon"
+      size="icon-sm"
       className="journal-edit-button"
       aria-label={`${entry.title} bewerken`}
-      onClick={() => setEditing(true)}
+      onClick={(event) => {
+        hold(event.currentTarget);
+        setEditing(true);
+      }}
     >
       <Pencil />
     </Button>
@@ -212,4 +217,5 @@ export const Entry = {
   Body,
   Attachments,
   Tags,
+  TagRow,
 };
