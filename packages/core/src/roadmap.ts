@@ -12,61 +12,45 @@ import { isVaardigheid, type Vaardigheid } from "./vaardigheden";
 const WEEK = /^week\s+(\d+)$/i;
 
 const planDate = z.union([isoDate, z.string().trim().regex(WEEK, "Verwacht YYYY-MM-DD of week N")]);
-const doneDate = isoDate.nullish().transform((value) => value ?? null);
 
-const doelSchema = z.object({
-  slug: z.string().trim().min(1),
-  titel: z.string().nullish(),
-  van: planDate,
-  tot: planDate,
-  afgerond: doneDate,
-});
-
-const mijlpaalSchema = z.object({
+const itemSchema = z.object({
   titel: z.string().trim().min(1),
   datum: planDate,
-  bewijs: list,
-  vaardigheden: list,
-  niveau: z.number().int().nullish(),
+  tot: planDate.nullish(),
   doel: z.string().trim().nullish(),
-  behaald: doneDate,
+  vaardigheden: list,
+  bewijs: list,
+  afgerond: isoDate.nullish(),
 });
 
-export type RoadmapIssueCode = "invalid-roadmap" | "unknown-vaardigheid" | "unknown-doel";
+export type RoadmapIssueCode = "invalid-roadmap" | "unknown-vaardigheid";
 
 export interface RoadmapIssue {
   code: RoadmapIssueCode;
   message: string;
 }
 
-export interface Doel {
+export interface RoadmapItem {
   index: number;
-  slug: string;
   titel: string;
-  van: string;
-  tot: string;
+  start: string;
+  eind: string;
+  meerdaags: boolean;
+  doel: string | null;
+  vaardigheden: Vaardigheid[];
+  bewijs: string[];
   afgerond: string | null;
 }
 
-export interface Mijlpaal {
-  index: number;
-  titel: string;
-  datum: string;
-  bewijs: string[];
-  vaardigheden: Vaardigheid[];
-  niveau: number | null;
-  doel: string | null;
-  behaald: string | null;
-}
-
 export interface Roadmap {
-  doelen: Doel[];
-  mijlpalen: Mijlpaal[];
+  items: RoadmapItem[];
   refs: string[];
   issues: RoadmapIssue[];
 }
 
-export const EMPTY_ROADMAP: Roadmap = { doelen: [], mijlpalen: [], refs: [], issues: [] };
+export const EMPTY_ROADMAP: Roadmap = { items: [], refs: [], issues: [] };
+
+const LIST = "planning";
 
 function resolveDate(value: string, edge: "start" | "end", config: Config): string | null {
   const week = WEEK.exec(value);
@@ -74,102 +58,79 @@ function resolveDate(value: string, edge: "start" | "end", config: Config): stri
   return weekRange(Number(week[1]), config)?.[edge] ?? null;
 }
 
-function items(data: Record<string, unknown>, key: string, issues: RoadmapIssue[]): unknown[] {
-  const value = data[key];
-  if (value == null) return [];
-  if (Array.isArray(value)) return value;
-  issues.push({ code: "invalid-roadmap", message: `${key}: verwacht een lijst` });
-  return [];
-}
-
 function describe(error: z.ZodError, label: string): string {
   const issue = error.issues[0]!;
   return `${label}${issue.path.length ? `.${issue.path.join(".")}` : ""}: ${issue.message}`;
 }
 
+// A single `datum: week 3` is a deadline, so it lands on Friday; as the
+// start of a range it is the Monday.
 export function parseRoadmap(source: string, config: Config): Roadmap {
   const split = splitFrontmatter(source);
   const read = readFrontmatter(split.yaml);
   const issues: RoadmapIssue[] = read.ok ? [] : [{ code: "invalid-roadmap", message: read.error }];
 
-  const doelen: Doel[] = [];
-  items(read.data, "doelen", issues).forEach((raw, index) => {
-    const parsed = doelSchema.safeParse(raw);
-    if (!parsed.success) {
-      issues.push({ code: "invalid-roadmap", message: describe(parsed.error, `doelen[${index}]`) });
-      return;
-    }
-    const { slug, titel, afgerond } = parsed.data;
-    const van = resolveDate(parsed.data.van, "start", config);
-    const tot = resolveDate(parsed.data.tot, "end", config);
-    if (!van || !tot) {
-      issues.push({ code: "invalid-roadmap", message: `Doel "${slug}": week zonder semesterstart` });
-      return;
-    }
-    doelen.push({ index, slug, titel: titel?.trim() || slug, van, tot, afgerond });
-  });
+  const raw = read.data[LIST] ?? [];
+  if (!Array.isArray(raw)) issues.push({ code: "invalid-roadmap", message: `${LIST}: verwacht een lijst` });
 
-  const slugs = new Set(doelen.map((d) => d.slug));
-  const mijlpalen: Mijlpaal[] = [];
-  items(read.data, "mijlpalen", issues).forEach((raw, index) => {
-    const parsed = mijlpaalSchema.safeParse(raw);
+  const items: RoadmapItem[] = [];
+  (Array.isArray(raw) ? raw : []).forEach((value, index) => {
+    const parsed = itemSchema.safeParse(value);
     if (!parsed.success) {
-      issues.push({ code: "invalid-roadmap", message: describe(parsed.error, `mijlpalen[${index}]`) });
+      issues.push({ code: "invalid-roadmap", message: describe(parsed.error, `${LIST}[${index}]`) });
       return;
     }
-    const { titel, bewijs, niveau, doel, behaald } = parsed.data;
-    const datum = resolveDate(parsed.data.datum, "end", config);
-    if (!datum) {
-      issues.push({ code: "invalid-roadmap", message: `Mijlpaal "${titel}": week zonder semesterstart` });
+    const { titel, tot, doel, vaardigheden, bewijs, afgerond } = parsed.data;
+    const start = resolveDate(parsed.data.datum, tot ? "start" : "end", config);
+    const eind = tot ? resolveDate(tot, "end", config) : start;
+    if (!start || !eind) {
+      issues.push({ code: "invalid-roadmap", message: `"${titel}": week zonder semesterstart` });
       return;
     }
-    for (const slug of parsed.data.vaardigheden.filter((s) => !isVaardigheid(s))) {
-      issues.push({ code: "unknown-vaardigheid", message: `Onbekende vaardigheid "${slug}" bij mijlpaal "${titel}"` });
+    if (eind < start) {
+      issues.push({ code: "invalid-roadmap", message: `"${titel}": tot ligt voor de datum` });
+      return;
     }
-    if (doel && !slugs.has(doel)) {
-      issues.push({ code: "unknown-doel", message: `Mijlpaal "${titel}" hoort bij onbekend doel "${doel}"` });
+    for (const slug of vaardigheden.filter((s) => !isVaardigheid(s))) {
+      issues.push({ code: "unknown-vaardigheid", message: `Onbekende vaardigheid "${slug}" bij "${titel}"` });
     }
-    mijlpalen.push({
+    items.push({
       index,
       titel,
-      datum,
-      bewijs,
-      vaardigheden: parsed.data.vaardigheden.filter(isVaardigheid),
-      niveau: niveau ?? null,
+      start,
+      eind,
+      meerdaags: !!tot,
       doel: doel || null,
-      behaald,
+      vaardigheden: vaardigheden.filter(isVaardigheid),
+      bewijs,
+      afgerond: afgerond ?? null,
     });
   });
 
   const refs: string[] = [];
   visit(parseMarkdown(split.body), "entryRef", (node: EntryRef) => void refs.push(node.key));
 
-  return { doelen, mijlpalen, refs: [...new Set(refs)], issues };
+  return { items, refs: [...new Set(refs)], issues };
 }
 
 export const ROADMAP_TEMPLATE = `---
-doelen:
-mijlpalen:
+planning:
 ---
 
 # Roadmap
 
 Semesterplanning. De app toont dit bestand als kalender.
 
-Een doel heeft een \`slug\` (dezelfde als in \`doelen:\` van je entries), een \`titel\`, en
-\`van\` en \`tot\` als datum (\`YYYY-MM-DD\`) of weeknummer (\`week 3\`). Zet \`afgerond\` op de
-datum waarop het doel geëvalueerd is.
-
-Een mijlpaal heeft een \`titel\` en een \`datum\`, en optioneel \`bewijs\` (namen zoals bij @[...]),
-\`vaardigheden\`, \`niveau\` en \`doel\`. Zet \`behaald\` op de datum waarop je hem haalde.
+Elk item heeft een \`titel\` en een \`datum\`, als \`YYYY-MM-DD\` of weeknummer (\`week 3\`).
+Met \`tot\` erbij loopt het over meerdere dagen. Optioneel: \`doel\` (de slug uit \`doelen:\` van
+je entries), \`vaardigheden\` en \`bewijs\` (namen zoals bij @[...]). Zet \`afgerond\` op de datum
+waarop het klaar is.
 `;
 
-export type RoadmapList = "doelen" | "mijlpalen";
-
 export type RoadmapEdit =
-  | { list: RoadmapList; action: "add"; fields: Record<string, unknown> }
-  | { list: RoadmapList; action: "update"; index: number; fields: Record<string, unknown> }
-  | { list: RoadmapList; action: "remove"; index: number };
+  | { action: "add"; fields: Record<string, unknown> }
+  | { action: "update"; index: number; fields: Record<string, unknown> }
+  | { action: "remove"; index: number };
 
 const isEmpty = (value: unknown) =>
   value == null || value === "" || (Array.isArray(value) && value.length === 0);
@@ -178,11 +139,11 @@ const valueNode = (doc: Document, value: unknown) =>
   doc.createNode(value, { flow: Array.isArray(value) });
 
 function applyEdit(doc: Document, edit: RoadmapEdit) {
-  let seq = doc.get(edit.list);
+  let seq = doc.get(LIST);
   if (!isSeq(seq)) {
-    if (edit.action !== "add") throw new Error(`${edit.list} is geen lijst`);
+    if (edit.action !== "add") throw new Error(`${LIST} is geen lijst`);
     seq = doc.createNode([]);
-    doc.set(edit.list, seq);
+    doc.set(LIST, seq);
   }
   if (!isSeq(seq)) return;
 
@@ -195,7 +156,7 @@ function applyEdit(doc: Document, edit: RoadmapEdit) {
   }
 
   const item = seq.items[edit.index];
-  if (!isMap(item)) throw new Error(`${edit.list}[${edit.index}] bestaat niet`);
+  if (!isMap(item)) throw new Error(`${LIST}[${edit.index}] bestaat niet`);
   if (edit.action === "remove") {
     seq.items.splice(edit.index, 1);
     return;
@@ -213,65 +174,46 @@ export function editRoadmap(source: string | null, edits: RoadmapEdit[]): string
   });
 }
 
-export type MijlpaalStatus = "behaald" | "verlopen" | "open";
-export type DoelStatus = "gepland" | "bezig" | "afgerond" | "over-tijd";
+export type ItemStatus = "gepland" | "bezig" | "afgerond" | "verlopen";
 
 export interface Bewijsstuk {
   key: string;
   entry: Entry | null;
 }
 
-export interface MijlpaalVoortgang {
-  mijlpaal: Mijlpaal;
-  status: MijlpaalStatus;
+export interface ItemVoortgang {
+  item: RoadmapItem;
+  status: ItemStatus;
   bewijsstukken: Bewijsstuk[];
   bewijsAanwezig: boolean;
-}
-
-export interface DoelVoortgang {
-  doel: Doel;
-  status: DoelStatus;
   entries: Entry[];
-  actieveWeken: Set<number>;
 }
 
 export interface RoadmapVoortgang {
-  doelen: DoelVoortgang[];
-  mijlpalen: MijlpaalVoortgang[];
+  items: ItemVoortgang[];
   ongepland: string[];
 }
 
-function doelStatus(doel: Doel, today: string): DoelStatus {
-  if (doel.afgerond) return "afgerond";
-  if (today < doel.van) return "gepland";
-  if (today > doel.tot) return "over-tijd";
-  return "bezig";
+function itemStatus(item: RoadmapItem, today: string): ItemStatus {
+  if (item.afgerond) return "afgerond";
+  if (today > item.eind) return "verlopen";
+  if (item.meerdaags && today >= item.start) return "bezig";
+  return "gepland";
 }
 
 export function roadmapStatus(roadmap: Roadmap, entries: Entry[], resolver: Resolver, today: string): RoadmapVoortgang {
-  const slugs = new Set(roadmap.doelen.map((d) => d.slug));
-
-  const doelen = roadmap.doelen.map((doel) => {
-    const linked = entries.filter((e) => e.doelen.includes(doel.slug));
+  const items = roadmap.items.map((item) => {
+    const bewijsstukken = item.bewijs.map((key) => ({ key, entry: resolver.resolve(key) }));
     return {
-      doel,
-      status: doelStatus(doel, today),
-      entries: linked,
-      actieveWeken: new Set(linked.flatMap((e) => (e.week === null ? [] : [e.week]))),
-    };
-  });
-
-  const mijlpalen = roadmap.mijlpalen.map((mijlpaal) => {
-    const bewijsstukken = mijlpaal.bewijs.map((key) => ({ key, entry: resolver.resolve(key) }));
-    const status: MijlpaalStatus = mijlpaal.behaald ? "behaald" : mijlpaal.datum < today ? "verlopen" : "open";
-    return {
-      mijlpaal,
-      status,
+      item,
+      status: itemStatus(item, today),
       bewijsstukken,
-      bewijsAanwezig: !mijlpaal.behaald && bewijsstukken.length > 0 && bewijsstukken.every((b) => b.entry),
+      bewijsAanwezig: !item.afgerond && bewijsstukken.length > 0 && bewijsstukken.every((b) => b.entry),
+      entries: item.doel ? entries.filter((e) => e.doelen.includes(item.doel!)) : [],
     };
   });
 
-  const ongepland = [...new Set(entries.flatMap((e) => e.doelen))].filter((slug) => !slugs.has(slug));
-  return { doelen, mijlpalen, ongepland };
+  const gepland = new Set(roadmap.items.flatMap((i) => (i.doel ? [i.doel] : [])));
+  const ongepland = [...new Set(entries.flatMap((e) => e.doelen))].filter((slug) => !gepland.has(slug));
+  return { items, ongepland };
 }

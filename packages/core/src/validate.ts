@@ -12,8 +12,7 @@ export type DiagnosticCode =
   | "span-in-check-in"
   | "similar-doel"
   | "ongepland-doel"
-  | "invalid-roadmap"
-  | "unknown-doel";
+  | "invalid-roadmap";
 
 export interface Diagnostic {
   entryId: string;
@@ -110,15 +109,13 @@ export function validateRoadmap(roadmap: Roadmap, resolver: Resolver): Diagnosti
 
   return [
     ...roadmap.issues.map((issue) => report(issue.code, issue.message)),
-    // Planned evidence may not exist yet; only a reached milestone must point somewhere.
-    ...roadmap.mijlpalen
-      .filter((m) => m.behaald)
-      .flatMap((m) =>
-        m.bewijs
+    // Planned evidence may not exist yet; only a finished item must point somewhere.
+    ...roadmap.items
+      .filter((item) => item.afgerond)
+      .flatMap((item) =>
+        item.bewijs
           .filter((key) => !resolver.resolve(key))
-          .map((key) =>
-            report("unresolved-ref", `Mijlpaal "${m.titel}" is behaald, maar bewijs "${key}" bestaat niet`),
-          ),
+          .map((key) => report("unresolved-ref", `"${item.titel}" is afgerond, maar bewijs "${key}" bestaat niet`)),
       ),
     ...roadmap.refs
       .filter((key) => !resolver.resolve(key))

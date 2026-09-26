@@ -1,12 +1,10 @@
 import {
   VAARDIGHEID_LABELS,
-  type DoelVoortgang,
   type Entry as EntryModel,
-  type MijlpaalVoortgang,
-  type RoadmapEdit,
+  type ItemVoortgang,
 } from "@logboeker/core";
 import { cn } from "cn";
-import { Check, Pencil, RotateCcw, Trash2, X } from "lucide-react";
+import { Check, Pencil, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   createContext,
@@ -26,26 +24,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Attachment } from "@/features/attachments/attachment";
+import { ItemDialog } from "@/features/calendar/roadmap-forms";
 import {
-  DOEL_PREFIX,
-  DOEL_STATUS,
-  doelRef,
-  MIJLPAAL_PREFIX,
-  mijlpaalLabel,
-  mijlpaalRef,
+  ITEM_PREFIX,
+  itemLabel,
+  itemPeriod,
+  itemRef,
   today,
   useEditRoadmap,
   useRoadmap,
 } from "@/features/calendar/use-roadmap";
-import { DoelDialog, MijlpaalDialog } from "@/features/calendar/roadmap-forms";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Entry } from "@/features/entries/entry";
-import { formatShortDate } from "@/lib/format";
+import { humanise } from "@/lib/format";
 import { useVault } from "@/lib/vault";
 import { useReferences } from "./use-references";
 import "@/features/editorial.css";
@@ -215,209 +206,44 @@ function EntryLinks({
   );
 }
 
-function RoadmapActions({
-  done,
-  doneLabel,
-  undoLabel,
-  onToggle,
-  onEdit,
-  onDelete,
-  deleteWarning,
-}: {
-  done: boolean;
-  doneLabel: string;
-  undoLabel: string;
-  onToggle: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  deleteWarning: string;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 border-t pt-4">
-      <Button variant="outline" size="sm" onClick={onToggle}>
-        {done ? <RotateCcw /> : <Check />}
-        {done ? undoLabel : doneLabel}
-      </Button>
-      <Button variant="ghost" size="sm" onClick={onEdit}>
-        <Pencil /> Bewerken
-      </Button>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className="ml-auto">
-            <Trash2 /> Verwijderen
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="end" className="w-64 space-y-3 text-sm">
-          <p>{deleteWarning}</p>
-          <Button variant="destructive" size="sm" onClick={onDelete}>
-            Definitief verwijderen
-          </Button>
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-}
-
-function useRoadmapAction() {
+function RoadmapItemCard({ voortgang }: { voortgang: ItemVoortgang }) {
+  const { show } = useStack();
+  const { item } = voortgang;
   const edit = useEditRoadmap();
-  return (edits: RoadmapEdit[], onSuccess?: () => void) =>
-    edit.mutate(edits, {
-      onSuccess,
-      onError: (error) => toast.error(error.message),
-    });
-}
-
-function DoelItem({
-  lane,
-  mijlpalen,
-}: {
-  lane: DoelVoortgang;
-  mijlpalen: MijlpaalVoortgang[];
-}) {
-  const { show, close } = useStack();
-  const { doel } = lane;
-  const apply = useRoadmapAction();
   const [editing, setEditing] = useState(false);
 
-  const remove = () =>
-    apply(
+  const toggleDone = () =>
+    edit.mutate(
       [
-        ...mijlpalen.map(({ mijlpaal }): RoadmapEdit => ({
-          list: "mijlpalen",
+        {
           action: "update",
-          index: mijlpaal.index,
-          fields: { doel: null },
-        })),
-        { list: "doelen", action: "remove", index: doel.index },
+          index: item.index,
+          fields: { afgerond: item.afgerond ? null : today() },
+        },
       ],
-      () => close(doelRef(doel.slug)),
+      { onError: (error) => toast.error(error.message) },
     );
 
   return (
     <Card className="reference-file gap-5 shadow-none">
       <CardHeader>
-        <CardTitle className="text-sm">{doel.titel}</CardTitle>
+        <CardTitle className="text-sm">{item.titel}</CardTitle>
         <CardDescription className="text-[10px] tracking-[0.12em] uppercase">
-          Doel · {DOEL_STATUS[lane.status]}
+          {itemPeriod(voortgang)} · {itemLabel(voortgang)}
         </CardDescription>
         <CardAction>
-          <CloseButton id={doelRef(doel.slug)} label={doel.titel} />
+          <CloseButton id={itemRef(item.index)} label={item.titel} />
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm">
-          {formatShortDate(doel.van)} tot {formatShortDate(doel.tot)}
-          {doel.afgerond && `, afgerond ${formatShortDate(doel.afgerond)}`}
-        </p>
-        {mijlpalen.length > 0 && (
-          <Section title="Mijlpalen">
-            <ul className="space-y-1">
-              {mijlpalen.map((m) => (
-                <li key={m.mijlpaal.index}>
-                  <Button
-                    variant="link"
-                    className="h-auto p-0 text-xs"
-                    onClick={() => show(mijlpaalRef(m.mijlpaal.index))}
-                  >
-                    {m.mijlpaal.titel}
-                  </Button>
-                  <span className="text-xs text-muted-foreground">
-                    {" "}
-                    · {mijlpaalLabel(m)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
-        <Section title="Entries">
-          <EntryLinks
-            entries={lane.entries}
-            empty="Nog geen entry met dit doel."
-          />
-        </Section>
-        <RoadmapActions
-          done={!!doel.afgerond}
-          doneLabel="Afgerond"
-          undoLabel="Heropenen"
-          onToggle={() =>
-            apply([
-              {
-                list: "doelen",
-                action: "update",
-                index: doel.index,
-                fields: { afgerond: doel.afgerond ? null : today() },
-              },
-            ])
-          }
-          onEdit={() => setEditing(true)}
-          onDelete={remove}
-          deleteWarning="Het doel verdwijnt uit de roadmap. Entries en mijlpalen blijven bestaan."
-        />
-        <DoelDialog open={editing} onOpenChange={setEditing} doel={doel} />
-      </CardContent>
-    </Card>
-  );
-}
-
-function MijlpaalItem({
-  voortgang,
-  lane,
-}: {
-  voortgang: MijlpaalVoortgang;
-  lane: DoelVoortgang | undefined;
-}) {
-  const { show, rewrite } = useStack();
-  const { mijlpaal } = voortgang;
-  const apply = useRoadmapAction();
-  const [editing, setEditing] = useState(false);
-
-  // Milestone ids are list positions, so later open cards shift up by one.
-  const remove = () =>
-    apply(
-      [{ list: "mijlpalen", action: "remove", index: mijlpaal.index }],
-      () =>
-        rewrite((ids) =>
-          ids.flatMap((id) => {
-            if (!id.startsWith(MIJLPAAL_PREFIX)) return [id];
-            const index = Number(id.slice(MIJLPAAL_PREFIX.length));
-            if (index === mijlpaal.index) return [];
-            return [index > mijlpaal.index ? mijlpaalRef(index - 1) : id];
-          }),
-        ),
-    );
-
-  return (
-    <Card className="reference-file gap-5 shadow-none">
-      <CardHeader>
-        <CardTitle className="text-sm">{mijlpaal.titel}</CardTitle>
-        <CardDescription className="text-[10px] tracking-[0.12em] uppercase">
-          Mijlpaal · {mijlpaalLabel(voortgang)}
-        </CardDescription>
-        <CardAction>
-          <CloseButton
-            id={mijlpaalRef(mijlpaal.index)}
-            label={mijlpaal.titel}
-          />
-        </CardAction>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm">
-          Gepland op {formatShortDate(mijlpaal.datum)}
-          {mijlpaal.vaardigheden.length > 0 &&
-            ` · ${mijlpaal.vaardigheden.map((v) => VAARDIGHEID_LABELS[v]).join(", ")}`}
-          {mijlpaal.niveau !== null && ` niveau ${mijlpaal.niveau}`}
-        </p>
-        {lane && (
-          <p className="text-xs">
-            Hoort bij{" "}
-            <Button
-              variant="link"
-              className="h-auto p-0 text-xs"
-              onClick={() => show(doelRef(lane.doel.slug))}
-            >
-              {lane.doel.titel}
-            </Button>
+        {(item.doel || item.vaardigheden.length > 0) && (
+          <p className="text-sm">
+            {[
+              item.doel && `Doel: ${humanise(item.doel)}`,
+              item.vaardigheden.map((v) => VAARDIGHEID_LABELS[v]).join(", "),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         )}
         <Section title="Bewijs">
@@ -450,29 +276,24 @@ function MijlpaalItem({
             </ul>
           )}
         </Section>
-        <RoadmapActions
-          done={!!mijlpaal.behaald}
-          doneLabel="Behaald"
-          undoLabel="Niet behaald"
-          onToggle={() =>
-            apply([
-              {
-                list: "mijlpalen",
-                action: "update",
-                index: mijlpaal.index,
-                fields: { behaald: mijlpaal.behaald ? null : today() },
-              },
-            ])
-          }
-          onEdit={() => setEditing(true)}
-          onDelete={remove}
-          deleteWarning="De mijlpaal verdwijnt uit de roadmap. Gekoppeld bewijs blijft bestaan."
-        />
-        <MijlpaalDialog
-          open={editing}
-          onOpenChange={setEditing}
-          mijlpaal={mijlpaal}
-        />
+        {item.doel && (
+          <Section title="Entries met dit doel">
+            <EntryLinks
+              entries={voortgang.entries}
+              empty="Nog geen entry met dit doel."
+            />
+          </Section>
+        )}
+        <div className="flex flex-wrap items-center gap-1.5 border-t pt-4">
+          <Button variant="outline" size="sm" onClick={toggleDone}>
+            {item.afgerond ? <RotateCcw /> : <Check />}
+            {item.afgerond ? "Heropenen" : "Afgerond"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+            <Pencil /> Bewerken
+          </Button>
+        </div>
+        <ItemDialog open={editing} onOpenChange={setEditing} item={item} />
       </CardContent>
     </Card>
   );
@@ -490,32 +311,11 @@ function Items({ className, ...props }: ComponentProps<"div">) {
         {open.map((id) => {
           const entry = entries.find((e) => e.id === id);
           if (entry) return <Item key={id} entry={entry} />;
-          if (id.startsWith(DOEL_PREFIX)) {
-            const slug = id.slice(DOEL_PREFIX.length);
-            const lane = roadmap.doelen.find((d) => d.doel.slug === slug);
-            return lane ? (
-              <DoelItem
-                key={id}
-                lane={lane}
-                mijlpalen={roadmap.mijlpalen.filter(
-                  (m) => m.mijlpaal.doel === slug,
-                )}
-              />
-            ) : null;
-          }
-          if (id.startsWith(MIJLPAAL_PREFIX)) {
-            const index = Number(id.slice(MIJLPAAL_PREFIX.length));
-            const voortgang = roadmap.mijlpalen.find(
-              (m) => m.mijlpaal.index === index,
-            );
+          if (id.startsWith(ITEM_PREFIX)) {
+            const index = Number(id.slice(ITEM_PREFIX.length));
+            const voortgang = roadmap.items.find((v) => v.item.index === index);
             return voortgang ? (
-              <MijlpaalItem
-                key={id}
-                voortgang={voortgang}
-                lane={roadmap.doelen.find(
-                  (d) => d.doel.slug === voortgang.mijlpaal.doel,
-                )}
-              />
+              <RoadmapItemCard key={id} voortgang={voortgang} />
             ) : null;
           }
           const name = id.startsWith(filePrefix)

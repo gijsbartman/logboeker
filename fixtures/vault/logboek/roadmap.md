@@ -1,42 +1,33 @@
 ---
-doelen:
-  - slug: tokens
-    titel: Tokenlaag in app.css
-    van: week 1
+planning:
+  - titel: Tokenlaag in app.css
+    datum: week 1
     tot: week 4
-    afgerond:
-  - slug: js-interop
-    titel: JS-interop opgeschoond
-    van: 2026-09-08
-    tot: week 2
-    afgerond:
-  - slug: advies
-    titel: Advies architectuur
-    van: week 8
-    tot: week 12
-    afgerond:
-mijlpalen:
-  - datum: week 1
-    titel: ADR tokenlaag vastgelegd
-    bewijs: [ADR 001 Tokenlaag in app.css]
-    vaardigheden: [kritisch-oordelen]
-    niveau: 2
     doel: tokens
-    behaald: 2026-09-09
-  - datum: 2026-09-12
-    titel: Sprintreview sprint 1 gegeven
-    bewijs: [Sprintreview sprint 1]
+  - titel: JS-interop opgeschoond
+    datum: 2026-09-08
+    tot: week 2
+    doel: js-interop
+  - titel: Advies architectuur
+    datum: week 8
+    tot: week 12
+    doel: advies
+  - titel: ADR tokenlaag vastgelegd
+    datum: week 1
+    doel: tokens
+    vaardigheden: [kritisch-oordelen]
+    bewijs: [ADR 001 Tokenlaag in app.css]
+    afgerond: 2026-09-09
+  - titel: Sprintreview sprint 1 gegeven
+    datum: 2026-09-12
     vaardigheden: [boodschap-delen]
-    behaald:
-  - datum: week 3
-    titel: Roadmap afgestemd met opdrachtgever
+    bewijs: [Sprintreview sprint 1]
+  - titel: Roadmap afgestemd met opdrachtgever
+    datum: week 3
     vaardigheden: [plannen]
-    behaald:
-  - datum: week 6
-    titel: Evaluatie Plannen N2
+  - titel: Evaluatie Plannen N2
+    datum: week 6
     vaardigheden: [plannen]
-    niveau: 2
-    behaald:
 ---
 
 # Roadmap
