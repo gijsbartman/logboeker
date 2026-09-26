@@ -1,21 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  NIVEAUS,
   VAARDIGHEDEN,
   VAARDIGHEID_LABELS,
-  type Doel,
-  type Mijlpaal,
-  type RoadmapEdit,
+  type RoadmapItem,
 } from "@logboeker/core";
 import { X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
-import {
-  Controller,
-  useForm,
-  type Control,
-  type FieldPath,
-  type FieldValues,
-} from "react-hook-form";
+import { useState, type ReactNode } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,329 +18,115 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Switch } from "@/components/ui/switch";
 import { SkillDot } from "@/features/skills/skill-badge";
 import { humanise, slugify } from "@/lib/format";
 import { useVault } from "@/lib/vault";
-import { today, useEditRoadmap } from "./use-roadmap";
+import { today, useEditRoadmap, useRemoveItem } from "./use-roadmap";
 
-const optionalDate = z.union([
-  z.literal(""),
-  z.iso.date("Kies een geldige datum"),
-]);
+const NEW_DOEL = "__nieuw";
 
-// Only fields the user changed are written, so untouched values such as
-// `week 3` keep their notation in the file.
-function changed(next: Record<string, unknown>, base: Record<string, unknown>) {
-  return Object.fromEntries(
-    Object.entries(next).filter(
-      ([key, value]) => JSON.stringify(value) !== JSON.stringify(base[key]),
-    ),
-  );
-}
+const itemSchema = z
+  .object({
+    titel: z.string().trim().min(1, "Geef het item een titel"),
+    datum: z.iso.date("Kies een datum"),
+    meerdaags: z.boolean(),
+    tot: z.string(),
+    afgerond: z.union([z.literal(""), z.iso.date("Kies een geldige datum")]),
+    doel: z.string(),
+    nieuwDoel: z.string(),
+    vaardigheden: z.array(z.enum(VAARDIGHEDEN)),
+    bewijs: z.array(z.string()),
+  })
+  .superRefine((values, ctx) => {
+    if (values.meerdaags && !/^\d{4}-\d{2}-\d{2}$/.test(values.tot)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["tot"],
+        message: "Kies een einddatum",
+      });
+    } else if (values.meerdaags && values.tot < values.datum) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["tot"],
+        message: "Het einde ligt voor de start",
+      });
+    }
+    if (values.doel === NEW_DOEL && !slugify(values.nieuwDoel)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["nieuwDoel"],
+        message: "Geef het doel een naam",
+      });
+    }
+  });
 
-type FormDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title: string;
-  description: string;
-  children: ReactNode;
-};
+type ItemValues = z.infer<typeof itemSchema>;
 
-function FormDialog({
-  open,
-  onOpenChange,
-  title,
-  description,
-  children,
-}: FormDialogProps) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100svh-2rem)] gap-6 overflow-y-auto rounded-sm p-7 sm:max-w-lg">
-        <DialogHeader className="gap-3">
-          <p className="text-[10px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
-            Roadmap
-          </p>
-          <DialogTitle className="font-[family-name:var(--font-display)] text-3xl font-normal tracking-tight">
-            {title}
-          </DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        {children}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-type InputFieldProps<T extends FieldValues> = {
-  control: Control<T>;
-  name: FieldPath<T>;
-  label: string;
-  type?: "text" | "date";
-  description?: string;
-  readOnly?: boolean;
-};
-
-function InputField<T extends FieldValues>({
-  control,
-  name,
-  label,
-  type = "text",
-  description,
-  readOnly,
-}: InputFieldProps<T>) {
-  return (
-    <Controller
-      name={name}
-      control={control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={`roadmap-${name}`}>{label}</FieldLabel>
-          <Input
-            {...field}
-            id={`roadmap-${name}`}
-            type={type}
-            readOnly={readOnly}
-            aria-invalid={fieldState.invalid}
-          />
-          {description && <FieldDescription>{description}</FieldDescription>}
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-  );
-}
-
-// A checkbox rather than an empty date input: WebKit shows an empty date
-// field as today and offers no way to clear it.
-function DoneDateField<T extends FieldValues>({
-  control,
-  name,
-  label,
-  description,
-}: Omit<InputFieldProps<T>, "type" | "readOnly">) {
-  return (
-    <Controller
-      name={name}
-      control={control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <label className="flex w-fit cursor-pointer items-center gap-2 text-sm font-medium">
-            <Checkbox
-              checked={field.value !== ""}
-              onCheckedChange={(checked) =>
-                field.onChange(checked === true ? today() : "")
-              }
-            />
-            {label}
-          </label>
-          {field.value !== "" && (
-            <Input
-              {...field}
-              id={`roadmap-${name}`}
-              type="date"
-              aria-label={`${label} op`}
-              aria-invalid={fieldState.invalid}
-            />
-          )}
-          {description && <FieldDescription>{description}</FieldDescription>}
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-  );
-}
-
-function FormFooter({
-  error,
-  pending,
-  onCancel,
-}: {
-  error: Error | null;
-  pending: boolean;
-  onCancel: () => void;
-}) {
-  return (
-    <>
-      {error && <p className="text-sm text-destructive">{error.message}</p>}
-      <DialogFooter>
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          Annuleren
-        </Button>
-        <Button type="submit" disabled={pending}>
-          Opslaan
-        </Button>
-      </DialogFooter>
-    </>
-  );
-}
-
-type DoelValues = {
-  titel: string;
-  slug: string;
-  van: string;
-  tot: string;
-  afgerond: string;
-};
-
-const doelFields = (values: DoelValues) => ({
-  slug: values.slug,
+const itemFields = (values: ItemValues) => ({
   titel: values.titel,
-  van: values.van,
-  tot: values.tot,
+  datum: values.datum,
+  tot: values.meerdaags ? values.tot : null,
+  doel:
+    values.doel === NEW_DOEL ? slugify(values.nieuwDoel) : values.doel || null,
+  vaardigheden: values.vaardigheden,
+  bewijs: values.bewijs,
   afgerond: values.afgerond || null,
 });
 
-function DoelForm({
-  doel,
-  slug,
-  onDone,
+// Only changed fields are written, so an untouched `week 3` keeps its
+// notation. Switching between one day and a range changes what a week
+// number means, so the date is then written out in full.
+function changedFields(values: ItemValues, base: ItemValues) {
+  const next = itemFields(values);
+  const before = itemFields(base);
+  const fields: Record<string, unknown> = Object.fromEntries(
+    Object.entries(next).filter(
+      ([key, value]) =>
+        JSON.stringify(value) !==
+        JSON.stringify(before[key as keyof typeof before]),
+    ),
+  );
+  if (values.meerdaags !== base.meerdaags) fields.datum = values.datum;
+  return fields;
+}
+
+function Group({ children }: { children: ReactNode }) {
+  return (
+    <div className="divide-y rounded-lg border bg-card text-sm">{children}</div>
+  );
+}
+
+function Row({
+  label,
+  htmlFor,
+  error,
+  children,
 }: {
-  doel?: Doel;
-  slug?: string;
-  onDone: () => void;
+  label: string;
+  htmlFor: string;
+  error?: string;
+  children: ReactNode;
 }) {
-  const { roadmap } = useVault();
-  const edit = useEditRoadmap();
-  const taken = roadmap.doelen
-    .filter((d) => d.index !== doel?.index)
-    .map((d) => d.slug);
-  const schema = z
-    .object({
-      titel: z.string().trim().min(1, "Geef het doel een titel"),
-      slug: z
-        .string()
-        .regex(
-          /^[a-z0-9]+(-[a-z0-9]+)*$/,
-          "Alleen kleine letters, cijfers en streepjes",
-        )
-        .refine((value) => !taken.includes(value), "Dit doel bestaat al"),
-      van: z.iso.date("Kies een startdatum"),
-      tot: z.iso.date("Kies een einddatum"),
-      afgerond: optionalDate,
-    })
-    .refine((v) => v.tot >= v.van, {
-      path: ["tot"],
-      message: "Het einde ligt voor de start",
-    });
-
-  const base: DoelValues = doel
-    ? {
-        titel: doel.titel,
-        slug: doel.slug,
-        van: doel.van,
-        tot: doel.tot,
-        afgerond: doel.afgerond ?? "",
-      }
-    : {
-        titel: slug ? humanise(slug) : "",
-        slug: slug ?? "",
-        van: today(),
-        tot: "",
-        afgerond: "",
-      };
-  const form = useForm<DoelValues>({
-    resolver: zodResolver(schema),
-    defaultValues: base,
-  });
-
-  const titel = form.watch("titel");
-  const autoSlug = !doel && !slug;
-  useEffect(() => {
-    if (autoSlug && !form.getFieldState("slug").isDirty) {
-      form.setValue("slug", slugify(titel));
-    }
-  }, [autoSlug, form, titel]);
-
-  const submit = (values: DoelValues) => {
-    const edits: RoadmapEdit[] = doel
-      ? [
-          {
-            list: "doelen",
-            action: "update",
-            index: doel.index,
-            fields: changed(doelFields(values), doelFields(base)),
-          },
-        ]
-      : [{ list: "doelen", action: "add", fields: doelFields(values) }];
-    edit.mutate(edits, { onSuccess: onDone });
-  };
-
   return (
-    <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
-      <FieldGroup>
-        <InputField control={form.control} name="titel" label="Titel" />
-        <InputField
-          control={form.control}
-          name="slug"
-          label="Slug"
-          readOnly={!!doel || !!slug}
-          description="Dezelfde naam als in doelen: van je entries"
-        />
-        <div className="grid grid-cols-2 gap-4">
-          <InputField
-            control={form.control}
-            name="van"
-            label="Van"
-            type="date"
-          />
-          <InputField
-            control={form.control}
-            name="tot"
-            label="Tot"
-            type="date"
-          />
-        </div>
-        <DoneDateField
-          control={form.control}
-          name="afgerond"
-          label="Afgerond"
-          description="Aanvinken zodra het doel geëvalueerd is"
-        />
-      </FieldGroup>
-      <FormFooter
-        error={edit.error}
-        pending={edit.isPending}
-        onCancel={onDone}
-      />
-    </form>
+    <div className="px-3 py-2">
+      <div className="flex min-h-8 items-center justify-between gap-4">
+        <label htmlFor={htmlFor} className="text-sm">
+          {label}
+        </label>
+        <div className="flex items-center gap-2">{children}</div>
+      </div>
+      {error && (
+        <p role="alert" className="pb-1 text-right text-xs text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
 
-type DoelDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  doel?: Doel;
-  slug?: string;
-};
-
-export function DoelDialog({
-  open,
-  onOpenChange,
-  doel,
-  slug,
-}: DoelDialogProps) {
-  return (
-    <FormDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={doel ? "Doel bewerken" : "Doel inplannen"}
-      description="Een doel is een op te leveren product, met de periode waarin je eraan werkt."
-    >
-      <DoelForm doel={doel} slug={slug} onDone={() => onOpenChange(false)} />
-    </FormDialog>
-  );
-}
+const dateInput = "h-8 w-40 border-0 bg-muted shadow-none";
 
 function BewijsInput({
   value,
@@ -371,7 +148,10 @@ function BewijsInput({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 px-3 py-3">
+      <label htmlFor="roadmap-bewijs" className="text-sm">
+        Bewijs
+      </label>
       {value.length > 0 && (
         <ul className="flex flex-wrap gap-1.5" aria-label="Gekoppeld bewijs">
           {value.map((key) => (
@@ -403,7 +183,7 @@ function BewijsInput({
           id="roadmap-bewijs"
           list="roadmap-bewijs-namen"
           value={draft}
-          placeholder="Naam van het bewijsstuk"
+          placeholder="Portflow-naam"
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             if (event.key !== "Enter") return;
@@ -415,6 +195,9 @@ function BewijsInput({
           Koppelen
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Mag ook een bewijsstuk zijn dat je nog gaat maken.
+      </p>
       <datalist id="roadmap-bewijs-namen">
         {names.map((name) => (
           <option key={name} value={name} />
@@ -424,120 +207,218 @@ function BewijsInput({
   );
 }
 
-const mijlpaalSchema = z.object({
-  titel: z.string().trim().min(1, "Geef de mijlpaal een titel"),
-  datum: z.iso.date("Kies een datum"),
-  doel: z.string(),
-  vaardigheden: z.array(z.enum(VAARDIGHEDEN)),
-  niveau: z.string(),
-  bewijs: z.array(z.string()),
-  behaald: optionalDate,
-});
+export type ItemDraft = {
+  titel?: string;
+  datum?: string;
+  meerdaags?: boolean;
+  doel?: string;
+};
 
-type MijlpaalValues = z.infer<typeof mijlpaalSchema>;
-
-const mijlpaalFields = (values: MijlpaalValues) => ({
-  datum: values.datum,
-  titel: values.titel,
-  bewijs: values.bewijs,
-  vaardigheden: values.vaardigheden,
-  niveau: values.niveau ? Number(values.niveau) : null,
-  doel: values.doel || null,
-  behaald: values.behaald || null,
-});
-
-function MijlpaalForm({
-  mijlpaal,
-  datum,
+function ItemForm({
+  item,
+  draft,
   onDone,
 }: {
-  mijlpaal?: Mijlpaal;
-  datum?: string;
+  item?: RoadmapItem;
+  draft?: ItemDraft;
   onDone: () => void;
 }) {
-  const { roadmap } = useVault();
+  const { doelen } = useVault();
   const edit = useEditRoadmap();
-  const base: MijlpaalValues = mijlpaal
+  const removal = useRemoveItem();
+  const [confirming, setConfirming] = useState(false);
+
+  const base: ItemValues = item
     ? {
-        titel: mijlpaal.titel,
-        datum: mijlpaal.datum,
-        doel: mijlpaal.doel ?? "",
-        vaardigheden: mijlpaal.vaardigheden,
-        niveau: mijlpaal.niveau === null ? "" : String(mijlpaal.niveau),
-        bewijs: mijlpaal.bewijs,
-        behaald: mijlpaal.behaald ?? "",
+        titel: item.titel,
+        datum: item.start,
+        meerdaags: item.meerdaags,
+        tot: item.meerdaags ? item.eind : "",
+        afgerond: item.afgerond ?? "",
+        doel: item.doel ?? "",
+        nieuwDoel: "",
+        vaardigheden: item.vaardigheden,
+        bewijs: item.bewijs,
       }
     : {
-        titel: "",
-        datum: datum ?? today(),
-        doel: "",
+        titel: draft?.titel ?? "",
+        datum: draft?.datum ?? today(),
+        meerdaags: draft?.meerdaags ?? false,
+        tot: "",
+        afgerond: "",
+        doel: draft?.doel ?? "",
+        nieuwDoel: "",
         vaardigheden: [],
-        niveau: "",
         bewijs: [],
-        behaald: "",
       };
-  const form = useForm<MijlpaalValues>({
-    resolver: zodResolver(mijlpaalSchema),
+  const form = useForm<ItemValues>({
+    resolver: zodResolver(itemSchema),
     defaultValues: base,
   });
+  const { errors } = form.formState;
+  const meerdaags = form.watch("meerdaags");
+  const doel = form.watch("doel");
+  const nieuwDoel = form.watch("nieuwDoel");
+  const options =
+    base.doel && !doelen.includes(base.doel) ? [base.doel, ...doelen] : doelen;
 
-  const submit = (values: MijlpaalValues) => {
-    const edits: RoadmapEdit[] = mijlpaal
-      ? [
-          {
-            list: "mijlpalen",
-            action: "update",
-            index: mijlpaal.index,
-            fields: changed(mijlpaalFields(values), mijlpaalFields(base)),
-          },
-        ]
-      : [{ list: "mijlpalen", action: "add", fields: mijlpaalFields(values) }];
-    edit.mutate(edits, { onSuccess: onDone });
-  };
+  const submit = (values: ItemValues) =>
+    edit.mutate(
+      item
+        ? [
+            {
+              action: "update",
+              index: item.index,
+              fields: changedFields(values, base),
+            },
+          ]
+        : [{ action: "add", fields: itemFields(values) }],
+      { onSuccess: onDone },
+    );
+
+  const error = edit.error ?? removal.error;
 
   return (
-    <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
-      <FieldGroup>
-        <InputField control={form.control} name="titel" label="Titel" />
-        <InputField
-          control={form.control}
-          name="datum"
-          label="Datum"
-          type="date"
+    <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
+      <div>
+        <Input
+          {...form.register("titel")}
+          aria-label="Titel"
+          placeholder="Nieuw item"
+          autoComplete="off"
+          aria-invalid={!!errors.titel}
+          className="h-auto border-0 bg-transparent px-0 font-(family-name:--font-display) text-2xl shadow-none focus-visible:ring-0 md:text-2xl dark:bg-transparent"
         />
-        <DoneDateField control={form.control} name="behaald" label="Behaald" />
+        {errors.titel && (
+          <p role="alert" className="text-xs text-destructive">
+            {errors.titel.message}
+          </p>
+        )}
+      </div>
+
+      <Group>
+        <Row
+          label={meerdaags ? "Van" : "Datum"}
+          htmlFor="roadmap-datum"
+          error={errors.datum?.message}
+        >
+          <Input
+            {...form.register("datum")}
+            id="roadmap-datum"
+            type="date"
+            className={dateInput}
+          />
+        </Row>
+        <Row label="Meerdaags" htmlFor="roadmap-meerdaags">
+          <Controller
+            name="meerdaags"
+            control={form.control}
+            render={({ field }) => (
+              <Switch
+                id="roadmap-meerdaags"
+                checked={field.value}
+                onCheckedChange={(checked) => {
+                  field.onChange(checked);
+                  if (!checked) form.setValue("tot", "");
+                }}
+              />
+            )}
+          />
+        </Row>
+        {meerdaags && (
+          <Row label="Tot" htmlFor="roadmap-tot" error={errors.tot?.message}>
+            <Input
+              {...form.register("tot")}
+              id="roadmap-tot"
+              type="date"
+              className={dateInput}
+            />
+          </Row>
+        )}
         <Controller
-          name="doel"
+          name="afgerond"
           control={form.control}
           render={({ field }) => (
-            <Field>
-              <FieldLabel htmlFor="roadmap-doel">Hoort bij doel</FieldLabel>
-              <select
-                {...field}
-                id="roadmap-doel"
-                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
-              >
-                <option value="">Geen doel</option>
-                {roadmap.doelen.map((d) => (
-                  <option key={d.slug} value={d.slug}>
-                    {d.titel}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <>
+              <Row label="Afgerond" htmlFor="roadmap-afgerond">
+                <Switch
+                  id="roadmap-afgerond"
+                  checked={field.value !== ""}
+                  onCheckedChange={(checked) =>
+                    field.onChange(checked ? today() : "")
+                  }
+                />
+              </Row>
+              {field.value !== "" && (
+                <Row
+                  label="Afgerond op"
+                  htmlFor="roadmap-afgerond-op"
+                  error={errors.afgerond?.message}
+                >
+                  <Input
+                    id="roadmap-afgerond-op"
+                    type="date"
+                    value={field.value}
+                    onChange={field.onChange}
+                    className={dateInput}
+                  />
+                </Row>
+              )}
+            </>
           )}
         />
+      </Group>
+
+      <Group>
+        <Row label="Doel" htmlFor="roadmap-doel">
+          <select
+            {...form.register("doel")}
+            id="roadmap-doel"
+            className="h-8 max-w-56 rounded-md bg-muted px-2 text-sm"
+          >
+            <option value="">Geen doel</option>
+            {options.map((slug) => (
+              <option key={slug} value={slug}>
+                {humanise(slug)}
+              </option>
+            ))}
+            <option value={NEW_DOEL}>Nieuw doel…</option>
+          </select>
+        </Row>
+        {doel === NEW_DOEL && (
+          <Row
+            label="Naam van het doel"
+            htmlFor="roadmap-nieuw-doel"
+            error={errors.nieuwDoel?.message}
+          >
+            <Input
+              {...form.register("nieuwDoel")}
+              id="roadmap-nieuw-doel"
+              autoComplete="off"
+              className="h-8 w-48 bg-muted shadow-none"
+            />
+          </Row>
+        )}
+        {doel === NEW_DOEL && slugify(nieuwDoel) && (
+          <p className="px-3 py-2 text-xs text-muted-foreground">
+            Zet <code>{slugify(nieuwDoel)}</code> in doelen: van je entries om
+            ze hieraan te koppelen.
+          </p>
+        )}
+      </Group>
+
+      <Group>
         <Controller
           name="vaardigheden"
           control={form.control}
           render={({ field }) => (
-            <FieldSet>
-              <FieldLegend variant="label">Vaardigheden</FieldLegend>
+            <fieldset className="px-3 py-3">
+              <legend className="mb-2 text-sm">Vaardigheden</legend>
               <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                 {VAARDIGHEDEN.map((skill) => (
                   <label
                     key={skill}
-                    className="flex cursor-pointer items-center gap-2 rounded-sm py-1 text-sm"
+                    className="flex cursor-pointer items-center gap-2 py-1 text-sm"
                   >
                     <Checkbox
                       checked={field.value.includes(skill)}
@@ -554,86 +435,95 @@ function MijlpaalForm({
                   </label>
                 ))}
               </div>
-            </FieldSet>
+            </fieldset>
           )}
         />
-        <Controller
-          name="niveau"
-          control={form.control}
-          render={({ field }) => (
-            <FieldSet>
-              <FieldLegend variant="label">Niveau</FieldLegend>
-              <ToggleGroup
-                type="single"
-                variant="outline"
-                size="sm"
-                aria-label="Niveau"
-                className="w-full"
-                value={field.value}
-                onValueChange={field.onChange}
-              >
-                {NIVEAUS.map((n) => (
-                  <ToggleGroupItem
-                    key={n}
-                    value={String(n)}
-                    className="flex-1 font-mono text-xs"
-                  >
-                    N{n}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </FieldSet>
-          )}
-        />
+      </Group>
+
+      <Group>
         <Controller
           name="bewijs"
           control={form.control}
           render={({ field }) => (
-            <Field>
-              <FieldLabel htmlFor="roadmap-bewijs">Bewijs</FieldLabel>
-              <BewijsInput value={field.value} onChange={field.onChange} />
-              <FieldDescription>
-                De Portflow-naam of titel. Mag ook een bewijsstuk zijn dat nog
-                gemaakt moet worden.
-              </FieldDescription>
-            </Field>
+            <BewijsInput value={field.value} onChange={field.onChange} />
           )}
         />
-      </FieldGroup>
-      <FormFooter
-        error={edit.error}
-        pending={edit.isPending}
-        onCancel={onDone}
-      />
+      </Group>
+
+      {error && <p className="text-sm text-destructive">{error.message}</p>}
+      <DialogFooter className="sm:justify-between">
+        {item ? (
+          confirming ? (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => removal.remove(item.index, onDone)}
+              >
+                Definitief verwijderen
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setConfirming(false)}
+              >
+                Behouden
+              </Button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-destructive"
+              onClick={() => setConfirming(true)}
+            >
+              Verwijderen
+            </Button>
+          )
+        ) : (
+          <span />
+        )}
+        <div className="flex gap-2">
+          <Button type="button" variant="ghost" onClick={onDone}>
+            Annuleren
+          </Button>
+          <Button type="submit" disabled={edit.isPending}>
+            {item ? "Opslaan" : "Toevoegen"}
+          </Button>
+        </div>
+      </DialogFooter>
     </form>
   );
 }
 
-type MijlpaalDialogProps = {
+type ItemDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  mijlpaal?: Mijlpaal;
-  datum?: string;
+  item?: RoadmapItem;
+  draft?: ItemDraft;
 };
 
-export function MijlpaalDialog({
+export function ItemDialog({
   open,
   onOpenChange,
-  mijlpaal,
-  datum,
-}: MijlpaalDialogProps) {
+  item,
+  draft,
+}: ItemDialogProps) {
   return (
-    <FormDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={mijlpaal ? "Mijlpaal bewerken" : "Mijlpaal toevoegen"}
-      description="Een moment in het semester dat je wilt halen, met het bewijs dat laat zien dat het gelukt is."
-    >
-      <MijlpaalForm
-        mijlpaal={mijlpaal}
-        datum={datum}
-        onDone={() => onOpenChange(false)}
-      />
-    </FormDialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[calc(100svh-2rem)] gap-5 overflow-y-auto rounded-xl p-6 sm:max-w-md">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{item ? "Item bewerken" : "Nieuw item"}</DialogTitle>
+          <DialogDescription>
+            Een moment of periode in je semesterplanning.
+          </DialogDescription>
+        </DialogHeader>
+        <ItemForm
+          item={item}
+          draft={draft}
+          onDone={() => onOpenChange(false)}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }

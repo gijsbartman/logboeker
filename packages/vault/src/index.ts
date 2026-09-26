@@ -107,7 +107,7 @@ export async function loadVault(fs: VaultFs): Promise<Vault> {
   );
 
   const resolver = createResolver(entries);
-  const gepland = new Set(roadmap.doelen.map((d) => d.slug));
+  const gepland = new Set(roadmap.items.flatMap((item) => (item.doel ? [item.doel] : [])));
   const doelen = [...gepland, ...byFrequency(entries.flatMap((e) => e.doelen)).filter((d) => !gepland.has(d))];
   const fileSet = new Set(files);
   const diagnostics = [

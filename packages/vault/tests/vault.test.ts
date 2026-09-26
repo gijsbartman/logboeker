@@ -54,22 +54,20 @@ test("goals are ordered by how often they occur", async () => {
 
 test("roadmap goals lead the goal list, and a missing roadmap is empty", async () => {
   const vault = await loadVault(fixtureFs());
-  expect(vault.roadmap.mijlpalen).toHaveLength(4);
+  expect(vault.roadmap.items).toHaveLength(7);
   expect(vault.doelen.slice(0, 3)).toEqual(["tokens", "js-interop", "advies"]);
   expect(vault.doelen).toContain("onboarding");
   expect(vault.diagnostics.map((d) => d.code)).toContain("ongepland-doel");
 
   const bare = await loadVault(createMemoryFs({ "data/config.md": "---\n---\n" }));
-  expect(bare.roadmap).toEqual({ doelen: [], mijlpalen: [], refs: [], issues: [] });
+  expect(bare.roadmap).toEqual({ items: [], refs: [], issues: [] });
 });
 
 test("editing the roadmap creates the file when it is missing", async () => {
   const fs = createMemoryFs({ "data/config.md": "---\nsemesterstart: 2026-09-07\n---\n" });
-  await editRoadmapFile(fs, [
-    { list: "doelen", action: "add", fields: { slug: "advies", titel: "Advies", van: "week 2", tot: "week 5" } },
-  ]);
+  await editRoadmapFile(fs, [{ action: "add", fields: { titel: "Advies", datum: "week 2", tot: "week 5" } }]);
   const vault = await loadVault(fs);
-  expect(vault.roadmap.doelen).toMatchObject([{ slug: "advies", van: "2026-09-14", tot: "2026-10-09" }]);
+  expect(vault.roadmap.items).toMatchObject([{ titel: "Advies", start: "2026-09-14", eind: "2026-10-09" }]);
   expect(await fs.readText("logboek/roadmap.md")).toContain("# Roadmap");
 });
 
@@ -118,7 +116,7 @@ test("scaffolding creates a vault that loads", async () => {
   const vault = await loadVault(fs);
   expect(vault.config).toMatchObject({ projectnaam: "X", semesterstart: "2026-09-07", sprintlengte_weken: 3 });
   expect(vault.entries).toEqual([]);
-  expect(vault.roadmap).toMatchObject({ doelen: [], mijlpalen: [], issues: [] });
+  expect(vault.roadmap).toMatchObject({ items: [], issues: [] });
 });
 
 test("scaffolding refuses to overwrite a vault", async () => {

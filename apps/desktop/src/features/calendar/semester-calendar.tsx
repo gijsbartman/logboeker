@@ -3,9 +3,8 @@ import {
   semesterWeeks,
   sprintWeek,
   type Config,
-  type DoelVoortgang,
   type Entry,
-  type MijlpaalVoortgang,
+  type ItemVoortgang,
   type SemesterWeek,
 } from "@logboeker/core";
 import { CalendarOff, Diamond, Plus, TriangleAlert } from "lucide-react";
@@ -22,23 +21,21 @@ import {
 } from "@/components/ui/empty";
 import {
   isFiltering,
-  matchesDoel,
   matchesFilters,
-  matchesMijlpaal,
+  matchesItem,
 } from "@/features/filters/search";
 import { useFilters } from "@/features/filters/use-filters";
 import { useReferences } from "@/features/references/use-references";
-import { formatDate, formatShortDate } from "@/lib/format";
+import { formatDate, formatShortDate, humanise } from "@/lib/format";
 import { useVault } from "@/lib/vault";
+import { ItemDialog, type ItemDraft } from "./roadmap-forms";
 import {
-  DOEL_STATUS,
-  doelRef,
-  mijlpaalLabel,
-  mijlpaalRef,
+  itemLabel,
+  itemPeriod,
+  itemRef,
   today,
   useRoadmap,
 } from "./use-roadmap";
-import { DoelDialog, MijlpaalDialog } from "./roadmap-forms";
 import "./calendar.css";
 
 const DAYS = ["Ma", "Di", "Wo", "Do", "Vr"];
@@ -47,32 +44,43 @@ const DAY_MS = 86_400_000;
 interface Day {
   logs: Entry[];
   bewijs: Entry[];
-  mijlpalen: MijlpaalVoortgang[];
+  items: ItemVoortgang[];
 }
+
+interface Bar {
+  voortgang: ItemVoortgang;
+  from: number;
+  to: number;
+  lane: number;
+  before: boolean;
+  after: boolean;
+}
+
+const daysBetween = (from: string, to: string) =>
+  (Date.parse(to) - Date.parse(from)) / DAY_MS;
 
 function addDays(iso: string, days: number) {
   return new Date(Date.parse(iso) + days * DAY_MS).toISOString().slice(0, 10);
 }
 
 // Weekend items land on Friday, so every workweek stays five columns wide.
-function layout(
+function layoutDays(
   weeks: SemesterWeek[],
   entries: Entry[],
-  mijlpalen: MijlpaalVoortgang[],
+  items: ItemVoortgang[],
   config: Config,
 ) {
   const days = new Map(
     weeks.map((w) => [
       w.week,
-      DAYS.map((): Day => ({ logs: [], bewijs: [], mijlpalen: [] })),
+      DAYS.map((): Day => ({ logs: [], bewijs: [], items: [] })),
     ]),
   );
   const place = (date: string, add: (day: Day) => void) => {
     const week = sprintWeek(date, config)?.week;
     const start = weeks.find((w) => w.week === week)?.start;
     if (!week || !start) return;
-    const column = Math.min((Date.parse(date) - Date.parse(start)) / DAY_MS, 4);
-    add(days.get(week)![column]!);
+    add(days.get(week)![Math.min(daysBetween(start, date), 4)]!);
   };
 
   for (const entry of entries) {
@@ -81,38 +89,44 @@ function layout(
         (entry.kind === "log" ? day.logs : day.bewijs).push(entry),
       );
   }
-  for (const m of mijlpalen)
-    place(m.mijlpaal.datum, (day) => day.mijlpalen.push(m));
+  for (const v of items) {
+    if (!v.item.meerdaags) place(v.item.start, (day) => day.items.push(v));
+  }
   return days;
 }
 
-function LaneCell({ lane, week }: { lane: DoelVoortgang; week: SemesterWeek }) {
-  const { show } = useReferences();
-  const planned = week.end >= lane.doel.van && week.start <= lane.doel.tot;
-  const active = lane.actieveWeken.has(week.week);
-  if (!planned && !active) return <span className="calendar-lane" />;
+// Multi-day items are cut at the week's edges and stacked in lanes, like
+// all-day events in a calendar app.
+function layoutBars(week: SemesterWeek, items: ItemVoortgang[]): Bar[] {
+  const segments = items
+    .filter(
+      ({ item }) =>
+        item.meerdaags && item.start <= week.end && item.eind >= week.start,
+    )
+    .map((voortgang) => {
+      const { start, eind } = voortgang.item;
+      return {
+        voortgang,
+        from: daysBetween(week.start, start > week.start ? start : week.start),
+        to: daysBetween(week.start, eind < week.end ? eind : week.end),
+        before: start < week.start,
+        after: eind > week.end,
+      };
+    })
+    .sort((a, b) => a.from - b.from || b.to - a.to);
 
-  return (
-    <button
-      type="button"
-      tabIndex={-1}
-      aria-hidden="true"
-      className="calendar-lane"
-      data-planned={planned || undefined}
-      data-active={active || undefined}
-      data-status={lane.status}
-      data-start={week.start <= lane.doel.van || undefined}
-      data-end={week.end >= lane.doel.tot || undefined}
-      onClick={() => show(doelRef(lane.doel.slug))}
-    />
-  );
+  const laneEnds: number[] = [];
+  return segments.map((segment) => {
+    let lane = laneEnds.findIndex((end) => end < segment.from);
+    if (lane === -1) lane = laneEnds.length;
+    laneEnds[lane] = segment.to;
+    return { ...segment, lane };
+  });
 }
 
 export function SemesterCalendar() {
   const { config, entries, diagnostics } = useVault();
-  const [dialog, setDialog] = useState<
-    { kind: "doel"; slug?: string } | { kind: "mijlpaal" } | null
-  >(null);
+  const [draft, setDraft] = useState<ItemDraft | null>(null);
   const roadmap = useRoadmap();
   const { search } = useFilters();
   const { show } = useReferences();
@@ -138,15 +152,12 @@ export function SemesterCalendar() {
   }
 
   const problems = diagnostics.filter((d) => d.entryId === ROADMAP_ID);
-  const closeDialog = (open: boolean) => !open && setDialog(null);
-  const days = layout(weeks, entries, roadmap.mijlpalen, config);
+  const days = layoutDays(weeks, entries, roadmap.items, config);
   const current = sprintWeek(now, config);
   const filtering = isFiltering(search);
   const dim = (matches: boolean) => (filtering && !matches) || undefined;
-  const behaald = roadmap.mijlpalen.filter(
-    (m) => m.status === "behaald",
-  ).length;
-  const afgerond = roadmap.doelen.filter((d) => d.status === "afgerond").length;
+  const count = (status: ItemVoortgang["status"]) =>
+    roadmap.items.filter((v) => v.status === status).length;
   const sprints = [...new Set(weeks.map((w) => w.sprint))];
 
   return (
@@ -162,18 +173,15 @@ export function SemesterCalendar() {
             </div>
             <dl className="journal-stats">
               <div>
-                <dt>Mijlpalen behaald</dt>
+                <dt>Afgerond</dt>
                 <dd>
-                  {String(behaald).padStart(2, "0")}
-                  <small>/{roadmap.mijlpalen.length}</small>
+                  {String(count("afgerond")).padStart(2, "0")}
+                  <small>/{roadmap.items.length}</small>
                 </dd>
               </div>
               <div>
-                <dt>Doelen afgerond</dt>
-                <dd>
-                  {String(afgerond).padStart(2, "0")}
-                  <small>/{roadmap.doelen.length}</small>
-                </dd>
+                <dt>Verlopen</dt>
+                <dd>{String(count("verlopen")).padStart(2, "0")}</dd>
               </div>
               <div>
                 <dt>{current ? `Week, sprint ${current.sprint}` : "Week"}</dt>
@@ -205,52 +213,19 @@ export function SemesterCalendar() {
           )}
 
           <div className="calendar-toolbar">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDialog({ kind: "doel" })}
-            >
-              <Plus /> Doel inplannen
+            <Button variant="outline" size="sm" onClick={() => setDraft({})}>
+              <Plus /> Nieuw item
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDialog({ kind: "mijlpaal" })}
-            >
-              <Plus /> Mijlpaal toevoegen
-            </Button>
+            <span>of dubbelklik op een dag</span>
           </div>
 
-          <div
-            className="calendar"
-            style={
-              roadmap.doelen.length > 0
-                ? ({
-                    "--lane-columns": `repeat(${roadmap.doelen.length}, 16px)`,
-                  } as CSSProperties)
-                : undefined
-            }
-          >
+          <div className="calendar">
             <div className="calendar-head">
               <span />
               {DAYS.map((day) => (
                 <span key={day} className="calendar-dayname">
                   {day}
                 </span>
-              ))}
-              {roadmap.doelen.map((lane) => (
-                <button
-                  key={lane.doel.slug}
-                  type="button"
-                  className="calendar-lane-label"
-                  data-status={lane.status}
-                  data-dim={dim(matchesDoel(lane.doel, search))}
-                  aria-label={`Doel ${lane.doel.titel}, ${DOEL_STATUS[lane.status]}`}
-                  title={lane.doel.titel}
-                  onClick={() => show(doelRef(lane.doel.slug))}
-                >
-                  {lane.doel.titel}
-                </button>
               ))}
             </div>
 
@@ -259,96 +234,133 @@ export function SemesterCalendar() {
                 <h2 className="calendar-sprint">Sprint {sprint}</h2>
                 {weeks
                   .filter((w) => w.sprint === sprint)
-                  .map((week) => (
-                    <div
-                      key={week.week}
-                      role="group"
-                      aria-label={`Week ${week.week}, ${formatShortDate(week.start)} tot ${formatShortDate(week.end)}`}
-                      className="calendar-week"
-                      data-current={week.week === current?.week || undefined}
-                    >
-                      <div className="calendar-weeklabel">
-                        <span>wk {week.week}</span>
-                        <small>{formatShortDate(week.start)}</small>
-                      </div>
-                      {days.get(week.week)!.map((day, i) => {
-                        const date = addDays(week.start, i);
-                        const missed =
-                          day.logs.length === 0 &&
-                          date < now &&
-                          date >= config.semesterstart!;
-                        return (
-                          <div
-                            key={date}
-                            className="calendar-day"
-                            data-today={date === now || undefined}
-                            data-missed={missed || undefined}
-                          >
-                            <span className="calendar-date">
-                              <span className="calendar-date-name">
-                                {DAYS[i]}{" "}
-                              </span>
-                              {formatShortDate(date)}
-                            </span>
-                            {day.logs.map((entry) => (
+                  .map((week) => {
+                    const bars = layoutBars(week, roadmap.items);
+                    return (
+                      <div
+                        key={week.week}
+                        role="group"
+                        aria-label={`Week ${week.week}, ${formatShortDate(week.start)} tot ${formatShortDate(week.end)}`}
+                        className="calendar-week"
+                        data-current={week.week === current?.week || undefined}
+                      >
+                        <div className="calendar-weeklabel">
+                          <span>wk {week.week}</span>
+                          <small>{formatShortDate(week.start)}</small>
+                        </div>
+                        {bars.length > 0 && (
+                          <div className="calendar-band">
+                            {bars.map((bar) => (
                               <button
-                                key={entry.id}
+                                key={bar.voortgang.item.index}
                                 type="button"
-                                className="calendar-log"
-                                data-dim={dim(matchesFilters(entry, search))}
-                                aria-label={`Daglog ${formatDate(date)}: ${entry.title}`}
-                                title={entry.title}
-                                onClick={() => show(entry.id)}
-                              >
-                                <span className="calendar-dot" />
-                                <span>{entry.title}</span>
-                              </button>
-                            ))}
-                            {day.mijlpalen.map((m) => (
-                              <button
-                                key={m.mijlpaal.index}
-                                type="button"
-                                className="calendar-milestone"
-                                data-status={m.status}
-                                data-evidence={m.bewijsAanwezig || undefined}
+                                className="calendar-bar"
+                                data-status={bar.voortgang.status}
+                                data-before={bar.before || undefined}
+                                data-after={bar.after || undefined}
                                 data-dim={dim(
-                                  matchesMijlpaal(m.mijlpaal, search),
+                                  matchesItem(bar.voortgang.item, search),
                                 )}
-                                aria-label={`Mijlpaal ${m.mijlpaal.titel}, ${mijlpaalLabel(m)}`}
-                                title={m.mijlpaal.titel}
+                                style={{
+                                  gridColumn: `${bar.from + 1} / ${bar.to + 2}`,
+                                  gridRow: bar.lane + 1,
+                                }}
+                                aria-label={`${bar.voortgang.item.titel}, ${itemPeriod(bar.voortgang)}, ${itemLabel(bar.voortgang)}`}
+                                title={bar.voortgang.item.titel}
                                 onClick={() =>
-                                  show(mijlpaalRef(m.mijlpaal.index))
+                                  show(itemRef(bar.voortgang.item.index))
                                 }
                               >
-                                <Diamond aria-hidden="true" />
-                                <span>{m.mijlpaal.titel}</span>
-                              </button>
-                            ))}
-                            {day.bewijs.map((entry) => (
-                              <button
-                                key={entry.id}
-                                type="button"
-                                className="calendar-evidence"
-                                data-dim={dim(matchesFilters(entry, search))}
-                                aria-label={`Bewijsstuk ${entry.title}`}
-                                title={entry.title}
-                                onClick={() => show(entry.id)}
-                              >
-                                <span>{entry.title}</span>
+                                <span>{bar.voortgang.item.titel}</span>
                               </button>
                             ))}
                           </div>
-                        );
-                      })}
-                      {roadmap.doelen.map((lane) => (
-                        <LaneCell
-                          key={lane.doel.slug}
-                          lane={lane}
-                          week={week}
-                        />
-                      ))}
-                    </div>
-                  ))}
+                        )}
+                        {days.get(week.week)!.map((day, i) => {
+                          const date = addDays(week.start, i);
+                          const missed =
+                            day.logs.length === 0 &&
+                            date < now &&
+                            date >= config.semesterstart!;
+                          return (
+                            <div
+                              key={date}
+                              className="calendar-day"
+                              style={{ "--day": i + 2 } as CSSProperties}
+                              data-today={date === now || undefined}
+                              data-missed={missed || undefined}
+                              onDoubleClick={(event) => {
+                                if (
+                                  !(event.target as HTMLElement).closest(
+                                    "button",
+                                  )
+                                )
+                                  setDraft({ datum: date });
+                              }}
+                            >
+                              <span className="calendar-date">
+                                <span className="calendar-date-name">
+                                  {DAYS[i]}{" "}
+                                </span>
+                                {formatShortDate(date)}
+                              </span>
+                              <div className="calendar-day-content">
+                                {day.logs.map((entry) => (
+                                  <button
+                                    key={entry.id}
+                                    type="button"
+                                    className="calendar-log"
+                                    data-dim={dim(
+                                      matchesFilters(entry, search),
+                                    )}
+                                    aria-label={`Daglog ${formatDate(date)}: ${entry.title}`}
+                                    title={entry.title}
+                                    onClick={() => show(entry.id)}
+                                  >
+                                    <span className="calendar-dot" />
+                                    <span>{entry.title}</span>
+                                  </button>
+                                ))}
+                                {day.items.map((v) => (
+                                  <button
+                                    key={v.item.index}
+                                    type="button"
+                                    className="calendar-item"
+                                    data-status={v.status}
+                                    data-evidence={
+                                      v.bewijsAanwezig || undefined
+                                    }
+                                    data-dim={dim(matchesItem(v.item, search))}
+                                    aria-label={`${v.item.titel}, ${itemLabel(v)}`}
+                                    title={v.item.titel}
+                                    onClick={() => show(itemRef(v.item.index))}
+                                  >
+                                    <Diamond aria-hidden="true" />
+                                    <span>{v.item.titel}</span>
+                                  </button>
+                                ))}
+                                {day.bewijs.map((entry) => (
+                                  <button
+                                    key={entry.id}
+                                    type="button"
+                                    className="calendar-evidence"
+                                    data-dim={dim(
+                                      matchesFilters(entry, search),
+                                    )}
+                                    aria-label={`Bewijsstuk ${entry.title}`}
+                                    title={entry.title}
+                                    onClick={() => show(entry.id)}
+                                  >
+                                    <span>{entry.title}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
               </section>
             ))}
           </div>
@@ -361,20 +373,18 @@ export function SemesterCalendar() {
               <span className="calendar-day" data-missed /> Werkdag zonder log
             </li>
             <li>
-              <Diamond className="calendar-legend-behaald" /> Mijlpaal behaald
+              <Diamond /> Item
             </li>
             <li>
-              <Diamond /> Mijlpaal open
+              <Diamond className="calendar-legend-afgerond" /> Afgerond
             </li>
             <li>
-              <Diamond className="calendar-legend-verlopen" /> Mijlpaal verlopen
+              <Diamond className="calendar-legend-verlopen" /> Verlopen
             </li>
-            {roadmap.doelen.length > 0 && (
-              <li>
-                <span className="calendar-lane" data-planned data-active />{" "}
-                Doel, week met activiteit
-              </li>
-            )}
+            <li>
+              <span className="calendar-bar calendar-legend-bar" /> Meerdaags
+              item
+            </li>
           </ul>
 
           {roadmap.ongepland.length > 0 && (
@@ -384,8 +394,8 @@ export function SemesterCalendar() {
             >
               <h2 id="unplanned-title">Niet ingepland</h2>
               <p>
-                Doelen uit je entries die nog geen periode hebben. Kies er een
-                om hem in te plannen.
+                Doelen uit je entries die nog niet op de roadmap staan. Kies er
+                een om hem in te plannen.
               </p>
               <ul>
                 {roadmap.ongepland.map((slug) => (
@@ -393,7 +403,13 @@ export function SemesterCalendar() {
                     <button
                       type="button"
                       aria-label={`${slug} inplannen`}
-                      onClick={() => setDialog({ kind: "doel", slug })}
+                      onClick={() =>
+                        setDraft({
+                          titel: humanise(slug),
+                          doel: slug,
+                          meerdaags: true,
+                        })
+                      }
                     >
                       <Plus aria-hidden="true" />
                       {slug}
@@ -404,14 +420,10 @@ export function SemesterCalendar() {
             </section>
           )}
 
-          <DoelDialog
-            open={dialog?.kind === "doel"}
-            onOpenChange={closeDialog}
-            slug={dialog?.kind === "doel" ? dialog.slug : undefined}
-          />
-          <MijlpaalDialog
-            open={dialog?.kind === "mijlpaal"}
-            onOpenChange={closeDialog}
+          <ItemDialog
+            open={draft !== null}
+            onOpenChange={(open) => !open && setDraft(null)}
+            draft={draft ?? undefined}
           />
         </div>
       </ScrollArea>
