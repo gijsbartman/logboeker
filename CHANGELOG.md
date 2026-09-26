@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/gijsbartman/logboeker/compare/v0.3.0...v0.4.0) (2026-09-26)
+
+
+### Features
+
+* make roadmap items editable inline ([#15](https://github.com/gijsbartman/logboeker/issues/15)) ([74c048c](https://github.com/gijsbartman/logboeker/commit/74c048cb7c6cbe56f263fb5db8e282f7f6d90470))
+* merge goals and milestones into one planning item ([#14](https://github.com/gijsbartman/logboeker/issues/14)) ([aad6d25](https://github.com/gijsbartman/logboeker/commit/aad6d25cee6f0898d9f4ddf9773de24717c1c090))
+
+
+### Bug Fixes
+
+* remove max-width from journal-page for better responsiveness ([#12](https://github.com/gijsbartman/logboeker/issues/12)) ([27009db](https://github.com/gijsbartman/logboeker/commit/27009dbf0c728e15504990f3e6466444a29c387a))
+
 ## [0.3.0](https://github.com/gijsbartman/logboeker/compare/v0.2.0...v0.3.0) (2026-09-26)
 
 
