@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/gijsbartman/logboeker/compare/v0.2.0...v0.3.0) (2026-09-26)
+
+
+### Features
+
+* add roadmap functionality with parsing, editing, and validation ([#10](https://github.com/gijsbartman/logboeker/issues/10)) ([c466f17](https://github.com/gijsbartman/logboeker/commit/c466f179da8d133da135f47f3dfdd8e96447fa5d))
+
 ## [0.2.0](https://github.com/gijsbartman/logboeker/compare/v0.1.0...v0.2.0) (2026-09-24)
 
 
