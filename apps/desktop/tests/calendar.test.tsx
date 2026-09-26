@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { renderApp } from "./render-app";
 
@@ -68,8 +68,31 @@ test("an item with a goal lists the entries that work on it", async () => {
   await screen.findByRole("heading", { name: "Roadmap" });
   await user.click(within(week(2)).getByRole("button", { name: /^Tokenlaag in app.css/ }));
 
-  expect(await screen.findByText(/Doel: Tokens/)).toBeInTheDocument();
+  expect(await screen.findByText("Entries met dit doel")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Tokenlaag afgestemd met UI/UX" })).toBeInTheDocument();
+  const card = screen.getByText("Entries met dit doel").closest("article")!;
+  expect(within(card).getByRole("button", { name: "Tokens" })).toHaveAttribute("aria-pressed", "false");
+});
+
+test("a bar ending on a weekend keeps a round edge", async () => {
+  renderApp("/kalender");
+  await screen.findByRole("heading", { name: "Roadmap" });
+  const bar = within(week(2)).getByRole("button", { name: /^JS-interop opgeschoond/ });
+  expect(bar).not.toHaveAttribute("data-after");
+});
+
+test("opening an item that is already open scrolls to it", async () => {
+  const scroll = vi.spyOn(Element.prototype, "scrollIntoView");
+  const { user } = renderApp('/kalender?open=["roadmap/item/4","logboek/daily/2026-09-08"]');
+  await screen.findByText("2 verwijzingen");
+  scroll.mockClear();
+
+  await user.click(within(week(1)).getByRole("button", { name: /^Sprintreview sprint 1 gegeven/ }));
+  await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1));
+  const card = scroll.mock.contexts[0] as HTMLElement;
+  expect(card.dataset.reference).toBe("roadmap/item/4");
+  expect(card).toHaveClass("reference-flash");
+  scroll.mockRestore();
 });
 
 test("filters and open references carry over from the list to the calendar", async () => {

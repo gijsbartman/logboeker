@@ -285,6 +285,18 @@
   --card-spacing: 0px;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .reference-pages > .reference-flash {
+    animation: reference-flash 1.2s ease-out;
+  }
+}
+
+@keyframes reference-flash {
+  from {
+    background: color-mix(in oklch, var(--primary) 12%, transparent);
+  }
+}
+
 .reference-pages [data-slot="card-header"],
 .reference-pages [data-slot="card-content"] {
   padding-inline: 0;

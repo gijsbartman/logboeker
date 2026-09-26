@@ -23,6 +23,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useEntry } from "@/features/entries/entry-context";
+import { useHoldHeight } from "@/features/references/hold-height";
+import { useDismiss } from "@/hooks/use-dismiss";
 import { useVault } from "@/lib/vault";
 import { DoelenField } from "./doelen-field";
 import { LabelPicker } from "./label-picker";
@@ -65,8 +67,10 @@ const STATUS: Record<SaveStatus, string> = {
 
 export function EntryEditor() {
   const { entry, setEditing } = useEntry();
+  const hold = useHoldHeight();
   const vault = useVault();
   const draft = useEntryDraft(entry);
+  const root = useRef<HTMLDivElement>(null);
   const wrapper = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
@@ -76,8 +80,14 @@ export function EntryEditor() {
   latest.current = {
     vault,
     anchor,
-    finish: () => void draft.flush().then(() => setEditing(false)),
+    finish: () =>
+      void draft.flush().then(() => {
+        hold(root.current);
+        setEditing(false);
+      }),
   };
+
+  useDismiss(root, () => latest.current.finish());
 
   const extensions = useMemo(
     () => [
@@ -133,7 +143,7 @@ export function EntryEditor() {
   };
 
   return (
-    <div className="entry-editor space-y-4">
+    <div ref={root} className="entry-editor space-y-4">
       <DoelenField
         value={entry.doelen}
         options={vault.doelen}

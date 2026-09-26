@@ -4,14 +4,17 @@ import {
   type ItemVoortgang,
 } from "@logboeker/core";
 import { cn } from "cn";
-import { Check, Pencil, RotateCcw, X } from "lucide-react";
+import { Circle, CircleCheck, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   createContext,
+  useCallback,
   useContext,
+  useEffect,
+  useRef,
   type ComponentProps,
   type ReactNode,
-  useState,
+  type RefObject,
 } from "react";
 import { PATHS } from "@logboeker/vault";
 import { Button } from "@/components/ui/button";
@@ -20,11 +23,15 @@ import {
   CardAction,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Attachment } from "@/features/attachments/attachment";
-import { ItemDialog } from "@/features/calendar/roadmap-forms";
+import { ItemEditor } from "@/features/calendar/item-editor";
+import { TagToggle } from "@/features/filters/tag-toggle";
+import { useFilters } from "@/features/filters/use-filters";
+import { SkillDot } from "@/features/skills/skill-badge";
 import {
   ITEM_PREFIX,
   itemLabel,
@@ -37,7 +44,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Entry } from "@/features/entries/entry";
 import { humanise } from "@/lib/format";
+import { useUiStore } from "@/lib/ui-store";
 import { useVault } from "@/lib/vault";
+import { HoldHeightContext, useHoldHeight } from "./hold-height";
 import { useReferences } from "./use-references";
 import "@/features/editorial.css";
 
@@ -104,19 +113,23 @@ function CloseButton({ id, label }: { id: string; label: string }) {
   return (
     <Button
       variant="ghost"
-      size="icon"
-      className="size-7 text-muted-foreground"
+      size="icon-sm"
+      className="text-muted-foreground"
       aria-label={`${label} sluiten`}
       onClick={() => close(id)}
     >
-      <X className="size-3.5" />
+      <X />
     </Button>
   );
 }
 
 function Item({ entry }: { entry: EntryModel }) {
   return (
-    <Entry.Root entry={entry} className="reference-page shadow-none">
+    <Entry.Root
+      entry={entry}
+      data-reference={entry.id}
+      className="reference-page shadow-none"
+    >
       <Entry.Header>
         <Entry.Title />
         <Entry.Meta />
@@ -136,7 +149,10 @@ function FileItem({ name }: { name: string }) {
   const usedIn = entries.filter((entry) => entry.attachments.includes(name));
 
   return (
-    <Card className="reference-file gap-5 shadow-none">
+    <Card
+      data-reference={`${PATHS.files}/${name}`}
+      className="reference-file gap-5 shadow-none"
+    >
       <CardHeader>
         <CardTitle className="truncate text-sm">{name}</CardTitle>
         <CardDescription className="text-[10px] tracking-[0.12em] uppercase">
@@ -208,9 +224,18 @@ function EntryLinks({
 
 function RoadmapItemCard({ voortgang }: { voortgang: ItemVoortgang }) {
   const { show } = useStack();
+  const filters = useFilters();
   const { item } = voortgang;
+  const id = itemRef(item.index);
   const edit = useEditRoadmap();
-  const [editing, setEditing] = useState(false);
+  const editing = useUiStore((state) => state.editing === id);
+  const startEditing = useUiStore((state) => state.edit);
+  const hold = useHoldHeight();
+  const card = useRef<HTMLElement>(null);
+  const setEditing = (next: string | null) => {
+    hold(card.current);
+    startEditing(next);
+  };
 
   const toggleDone = () =>
     edit.mutate(
@@ -225,106 +250,224 @@ function RoadmapItemCard({ voortgang }: { voortgang: ItemVoortgang }) {
     );
 
   return (
-    <Card className="reference-file gap-5 shadow-none">
+    <article
+      ref={card}
+      data-slot="entry"
+      data-reference={id}
+      data-editing={editing}
+      className="journal-entry reference-page shadow-none"
+    >
       <CardHeader>
-        <CardTitle className="text-sm">{item.titel}</CardTitle>
-        <CardDescription className="text-[10px] tracking-[0.12em] uppercase">
+        <h4 className="journal-entry-title">{item.titel}</h4>
+        <CardDescription className="journal-entry-meta first-letter:uppercase">
           {itemPeriod(voortgang)} · {itemLabel(voortgang)}
         </CardDescription>
-        <CardAction>
-          <CloseButton id={itemRef(item.index)} label={item.titel} />
+        <CardAction className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="journal-edit-button"
+            aria-pressed={!!item.afgerond}
+            aria-label={
+              item.afgerond
+                ? `${item.titel} heropenen`
+                : `${item.titel} afronden`
+            }
+            onClick={toggleDone}
+          >
+            {item.afgerond ? <CircleCheck /> : <Circle />}
+          </Button>
+          {!editing && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="journal-edit-button"
+              aria-label={`${item.titel} bewerken`}
+              onClick={() => setEditing(id)}
+            >
+              <Pencil />
+            </Button>
+          )}
+          <CloseButton id={id} label={item.titel} />
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
-        {(item.doel || item.vaardigheden.length > 0) && (
-          <p className="text-sm">
-            {[
-              item.doel && `Doel: ${humanise(item.doel)}`,
-              item.vaardigheden.map((v) => VAARDIGHEID_LABELS[v]).join(", "),
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
+        {editing ? (
+          <ItemEditor item={item} onDone={() => setEditing(null)} />
+        ) : (
+          <>
+            <Section title="Bewijs">
+              {voortgang.bewijsstukken.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Geen bewijs gekoppeld.
+                </p>
+              ) : (
+                <ul className="space-y-1">
+                  {voortgang.bewijsstukken.map(({ key, entry }) => (
+                    <li key={key}>
+                      {entry ? (
+                        <Button
+                          variant="link"
+                          className="h-auto p-0 text-xs"
+                          onClick={() => show(entry.id)}
+                        >
+                          {entry.title}
+                        </Button>
+                      ) : (
+                        <span
+                          className="text-xs text-muted-foreground"
+                          title="Verwijzing niet gevonden"
+                        >
+                          {key} · ontbreekt
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+            {item.doel && (
+              <Section title="Entries met dit doel">
+                <EntryLinks
+                  entries={voortgang.entries}
+                  empty="Nog geen entry met dit doel."
+                />
+              </Section>
+            )}
+          </>
         )}
-        <Section title="Bewijs">
-          {voortgang.bewijsstukken.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Geen bewijs gekoppeld.
-            </p>
-          ) : (
-            <ul className="space-y-1">
-              {voortgang.bewijsstukken.map(({ key, entry }) => (
-                <li key={key}>
-                  {entry ? (
-                    <Button
-                      variant="link"
-                      className="h-auto p-0 text-xs"
-                      onClick={() => show(entry.id)}
-                    >
-                      {entry.title}
-                    </Button>
-                  ) : (
-                    <span
-                      className="text-xs text-muted-foreground"
-                      title="Verwijzing niet gevonden"
-                    >
-                      {key} · ontbreekt
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
-        {item.doel && (
-          <Section title="Entries met dit doel">
-            <EntryLinks
-              entries={voortgang.entries}
-              empty="Nog geen entry met dit doel."
-            />
-          </Section>
-        )}
-        <div className="flex flex-wrap items-center gap-1.5 border-t pt-4">
-          <Button variant="outline" size="sm" onClick={toggleDone}>
-            {item.afgerond ? <RotateCcw /> : <Check />}
-            {item.afgerond ? "Heropenen" : "Afgerond"}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-            <Pencil /> Bewerken
-          </Button>
-        </div>
-        <ItemDialog open={editing} onOpenChange={setEditing} item={item} />
       </CardContent>
-    </Card>
+      {!editing && (item.doel || item.vaardigheden.length > 0) && (
+        <CardFooter className="journal-entry-tags">
+          {item.doel && (
+            <Entry.TagRow label="Doel">
+              <TagToggle
+                active={filters.isActive("doel", item.doel)}
+                onToggle={() => filters.toggle("doel", item.doel!)}
+              >
+                {humanise(item.doel)}
+              </TagToggle>
+            </Entry.TagRow>
+          )}
+          {item.vaardigheden.length > 0 && (
+            <Entry.TagRow label="Vaardigheid">
+              {item.vaardigheden.map((skill) => (
+                <TagToggle
+                  key={skill}
+                  active={filters.isActive("vaardigheid", skill)}
+                  onToggle={() => filters.toggle("vaardigheid", skill)}
+                >
+                  <SkillDot vaardigheid={skill} />
+                  {VAARDIGHEID_LABELS[skill]}
+                </TagToggle>
+              ))}
+            </Entry.TagRow>
+          )}
+        </CardFooter>
+      )}
+    </article>
+  );
+}
+
+// Opening a reference, also one that is already open, scrolls it into view
+// and flashes it, so the click always visibly lands somewhere.
+function useRevealed(open: string[]) {
+  const container = useRef<HTMLDivElement>(null);
+  const revealed = useUiStore((state) => state.revealed);
+  const reveal = useUiStore((state) => state.reveal);
+
+  useEffect(() => {
+    if (!revealed) return;
+    const frame = requestAnimationFrame(() => {
+      const card = [
+        ...(container.current?.querySelectorAll<HTMLElement>(
+          "[data-reference]",
+        ) ?? []),
+      ].find((element) => element.dataset.reference === revealed);
+      if (!card) return;
+      card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      card.classList.remove("reference-flash");
+      void card.offsetWidth;
+      card.classList.add("reference-flash");
+      reveal(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [revealed, open, reveal]);
+
+  return container;
+}
+
+const RELEASE = ["wheel", "touchstart", "keydown"] as const;
+const SETTLE_MS = 400;
+
+function useHold(container: RefObject<HTMLDivElement | null>) {
+  return useCallback(
+    (from: Element | null) => {
+      const element = container.current;
+      const viewport = element?.closest<HTMLElement>(
+        '[data-slot="scroll-area-viewport"]',
+      );
+      const card = from?.closest('[data-slot="entry"]');
+      if (!element || !viewport) return;
+
+      element.style.minHeight = `${element.offsetHeight}px`;
+      const release = () => {
+        element.style.minHeight = "";
+        for (const type of RELEASE) viewport.removeEventListener(type, release);
+      };
+      for (const type of RELEASE)
+        viewport.addEventListener(type, release, { passive: true });
+
+      if (!card) return;
+      const top = card.getBoundingClientRect().top;
+      const pin = () => {
+        const drift = card.getBoundingClientRect().top - top;
+        if (Math.abs(drift) >= 1) viewport.scrollTop += drift;
+      };
+      viewport.addEventListener("scroll", pin);
+      requestAnimationFrame(() => requestAnimationFrame(pin));
+      setTimeout(() => viewport.removeEventListener("scroll", pin), SETTLE_MS);
+    },
+    [container],
   );
 }
 
 function Items({ className, ...props }: ComponentProps<"div">) {
   const { open } = useStack();
+  const container = useRevealed(open);
+  const hold = useHold(container);
   const { entries, files } = useVault();
   const roadmap = useRoadmap();
   const filePrefix = `${PATHS.files}/`;
 
   return (
     <ScrollArea className="min-h-0 flex-1">
-      <div className={cn("reference-pages px-5", className)} {...props}>
-        {open.map((id) => {
-          const entry = entries.find((e) => e.id === id);
-          if (entry) return <Item key={id} entry={entry} />;
-          if (id.startsWith(ITEM_PREFIX)) {
-            const index = Number(id.slice(ITEM_PREFIX.length));
-            const voortgang = roadmap.items.find((v) => v.item.index === index);
-            return voortgang ? (
-              <RoadmapItemCard key={id} voortgang={voortgang} />
+      <div
+        ref={container}
+        className={cn("reference-pages px-5 pb-[50vh]", className)}
+        {...props}
+      >
+        <HoldHeightContext.Provider value={hold}>
+          {open.map((id) => {
+            const entry = entries.find((e) => e.id === id);
+            if (entry) return <Item key={id} entry={entry} />;
+            if (id.startsWith(ITEM_PREFIX)) {
+              const index = Number(id.slice(ITEM_PREFIX.length));
+              const voortgang = roadmap.items.find(
+                (v) => v.item.index === index,
+              );
+              return voortgang ? (
+                <RoadmapItemCard key={id} voortgang={voortgang} />
+              ) : null;
+            }
+            const name = id.startsWith(filePrefix)
+              ? id.slice(filePrefix.length)
+              : null;
+            return name && files.includes(name) ? (
+              <FileItem key={id} name={name} />
             ) : null;
-          }
-          const name = id.startsWith(filePrefix)
-            ? id.slice(filePrefix.length)
-            : null;
-          return name && files.includes(name) ? (
-            <FileItem key={id} name={name} />
-          ) : null;
-        })}
+          })}
+        </HoldHeightContext.Provider>
       </div>
     </ScrollArea>
   );
