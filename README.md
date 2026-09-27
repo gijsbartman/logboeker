@@ -1,32 +1,74 @@
-# `Turborepo` Vite starter
+# Logboeker
 
-This is a community-maintained example. If you experience a problem, please submit a pull request with a fix. GitHub Issues will be closed.
+A desktop app for keeping a study logbook as plain Markdown files. You point it at a folder (a _vault_) and it gives you a calendar of daily entries, a live-preview editor, skills labelling, references, attachments, search and a semester roadmap. Everything stays on disk as ordinary Markdown with frontmatter, so the vault stays readable without the app.
 
-## Using this example
+Built with [Tauri](https://tauri.app), React and TypeScript in a [Turborepo](https://turborepo.dev) monorepo.
 
-Run the following command:
+## Download
 
-```sh
-npx create-turbo@latest -e with-vite-react
+Installers for macOS (universal), Windows and Linux are attached to each [GitHub release](https://github.com/gijsbartman/logboeker/releases).
+
+## Vault layout
+
+```
+my-vault/
+├── data/
+│   ├── config.md            # student name, semester start, sprint length
+│   └── json/
+│       └── vaardigheden.json
+└── logboek/
+    ├── daily/               # one entry per day, e.g. 2026-09-08.md
+    ├── evidence/            # standalone pieces of evidence
+    ├── files/               # attachments
+    └── roadmap.md           # semester planning
 ```
 
-## What's inside?
+A complete example lives in [fixtures/vault](fixtures/vault).
 
-This Turborepo includes the following packages and apps:
+## Repository
 
-### Apps and Packages
+| Path                         | What it is                                                            |
+| ---------------------------- | --------------------------------------------------------------------- |
+| `apps/desktop`               | The Tauri app: React frontend in `src/`, Rust backend in `src-tauri/` |
+| `packages/core`              | Domain model: entries, frontmatter, config, criteria, roadmap, search |
+| `packages/vault`             | Loads and writes a vault on top of `core`                             |
+| `packages/editor`            | CodeMirror extensions: live preview, commands and mentions            |
+| `packages/eslint-config`     | Shared ESLint config                                                  |
+| `packages/typescript-config` | Shared `tsconfig` bases                                               |
+| `packages/vitest-config`     | Shared Vitest config and coverage report merging                      |
+| `fixtures/vault`             | Sample vault used in tests and development                            |
 
-- `web`: a React and [Vite](https://vite.dev) TypeScript app
-- `@repo/ui`: a stub component library shared by the `web` app
-- `@repo/eslint-config`: shared ESLint configuration
-- `@repo/typescript-config`: shared `tsconfig.json` files
+## Development
 
-Each package and app is 100% [TypeScript](https://www.typescriptlang.org/).
+Requirements:
 
-### Utilities
+- Node.js 24.20 or newer
+- pnpm 11 (`corepack enable` picks up the version from `package.json`)
+- Rust stable and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your platform
 
-This Turborepo has some additional tools already set up for you:
+```sh
+pnpm install
+pnpm --filter desktop tauri dev   # run the desktop app
+```
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+Common tasks from the repository root:
+
+```sh
+pnpm build          # build all packages and the app frontend
+pnpm test           # run all tests
+pnpm lint           # lint all packages
+pnpm check-types    # typecheck all packages
+pnpm format         # format with Prettier
+```
+
+Rust checks, run from `apps/desktop/src-tauri`:
+
+```sh
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo test
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch, pull request and release workflow.
