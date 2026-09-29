@@ -68,6 +68,6 @@ describe("parseEntry", () => {
   });
 
   test("rejects paths outside the entry folders", () => {
-    expect(() => parseEntry("data/config.md", "", config)).toThrow();
+    expect(() => parseEntry("config.md", "", config)).toThrow();
   });
 });

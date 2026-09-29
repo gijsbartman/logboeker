@@ -1,0 +1,9 @@
+{
+  "name": "logboeker",
+  "version": "0.4.0",
+  "description": "Claude Code skills for an Open-ICT logbook vault: setup, semester roadmap, daily check-in and check-out, Jira stories, evidence overviews, progress advice and LEF criteria.",
+  "author": {
+    "name": "Gijs Bartman"
+  },
+  "repository": "https://github.com/gijsbartman/logboeker"
+}

@@ -150,16 +150,14 @@ export function VaultFileTree() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           </FileTree.Folder>
-          <FileTree.Folder name="data">
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="/instellingen">
-                  <Settings />
-                  config.md
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </FileTree.Folder>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <Link to="/instellingen">
+                <Settings />
+                {PATHS.config}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

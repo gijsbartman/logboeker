@@ -27,14 +27,6 @@
     "fs:allow-unwatch",
     "fs:allow-mkdir",
     "fs:allow-write-text-file",
-    "fs:allow-rename",
-    {
-      "identifier": "fs:scope",
-      "allow": [
-        {
-          "path": "/**/logboek/files/.extracted/*"
-        }
-      ]
-    }
+    "fs:allow-rename"
   ]
 }

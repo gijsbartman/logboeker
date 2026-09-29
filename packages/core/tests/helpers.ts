@@ -4,7 +4,7 @@ import { parseConfig, parseEntry, parseRoadmap, type Entry, type Roadmap } from 
 
 const VAULT = join(import.meta.dirname, "../../../fixtures/vault");
 
-export const config = parseConfig(readFileSync(join(VAULT, "data/config.md"), "utf8"));
+export const config = parseConfig(readFileSync(join(VAULT, "config.md"), "utf8"));
 
 export function loadEntries(): Entry[] {
   return ["logboek/daily", "logboek/evidence"].flatMap((dir) =>

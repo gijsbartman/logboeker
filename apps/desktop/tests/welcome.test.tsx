@@ -15,7 +15,7 @@ test("without a vault the welcome screen is shown", async () => {
 });
 
 test("opening a folder that is not a vault says what is missing", async () => {
-  state.disks.set("/notes", createMemoryFs({ "data/config.md": "---\n---\n" }));
+  state.disks.set("/notes", createMemoryFs({ "config.md": "---\n---\n" }));
   state.picked = "/notes";
   const { user } = renderApp();
 
@@ -51,5 +51,5 @@ test("creating a vault scaffolds it and opens it", async () => {
 
   expect(await screen.findByText("Nog geen entries")).toBeInTheDocument();
   expect(router.state.location.pathname).toBe("/");
-  expect(await disk.readText("data/config.md")).toContain("projectnaam: USPSimGame");
+  expect(await disk.readText("config.md")).toContain("projectnaam: USPSimGame");
 });

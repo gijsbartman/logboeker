@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { createSearchIndex } from "../src";
 import { loadEntries } from "./helpers";
 
-const index = createSearchIndex(loadEntries(), (name) => (name.endsWith(".pptx") ? "demo van de tokenlaag" : ""));
+const index = createSearchIndex(loadEntries());
 const ids = (query: string) => index.search(query).map((hit) => hit.entry.id);
 
 test("finds body text, with title matches ranked above body-only matches", () => {
@@ -25,8 +25,8 @@ test("all words must match", () => {
   expect(ids("sprintreview onboarding")).toEqual([]);
 });
 
-test("searches attachment text", () => {
-  expect(ids("demo")).toContain("logboek/evidence/2026-09-12-sprintreview");
+test("searches attachment names", () => {
+  expect(ids("notulen")).toContain("logboek/evidence/2026-09-12-sprintreview");
 });
 
 test("snippets show the match without markdown syntax", () => {

@@ -40,7 +40,7 @@ function snippetFor(text: string, terms: string[], radius = 80): string {
   return `${start > 0 ? "…" : ""}${flat}${end < text.length ? "…" : ""}`;
 }
 
-export function createSearchIndex(entries: Entry[], attachmentText: (name: string) => string = () => ""): SearchIndex {
+export function createSearchIndex(entries: Entry[]): SearchIndex {
   const byId = new Map(entries.map((e) => [e.id, e]));
   const index = new MiniSearch<Document>({
     fields: ["title", "portflowNaam", "date", "doelen", "vaardigheden", "text", "attachments"],
@@ -62,7 +62,7 @@ export function createSearchIndex(entries: Entry[], attachmentText: (name: strin
       doelen: entry.doelen.join(" ").replace(/-/g, " "),
       vaardigheden: entry.vaardigheden.map((v) => VAARDIGHEID_LABELS[v]).join(" "),
       text: entry.text,
-      attachments: entry.attachments.map((name) => `${name} ${attachmentText(name)}`).join(" "),
+      attachments: entry.attachments.join(" "),
     })),
   );
 

@@ -145,7 +145,7 @@ export function SemesterCalendar() {
             </EmptyMedia>
             <EmptyTitle>Geen semesterstart</EmptyTitle>
             <EmptyDescription>
-              Zet semesterstart in data/config.md om de kalender te tonen.
+              Zet semesterstart in config.md om de kalender te tonen.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

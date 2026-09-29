@@ -44,7 +44,7 @@ test("loads entries newest first", async () => {
 test("goals are ordered by how often they occur", async () => {
   const vault = await loadVault(
     createMemoryFs({
-      "data/config.md": "---\n---\n",
+      "config.md": "---\n---\n",
       "logboek/daily/2026-09-01.md": "---\ndoelen: [b, a]\n---\n",
       "logboek/daily/2026-09-02.md": "---\ndoelen: [b]\n---\n",
     }),
@@ -59,12 +59,12 @@ test("roadmap goals lead the goal list, and a missing roadmap is empty", async (
   expect(vault.doelen).toContain("onboarding");
   expect(vault.diagnostics.map((d) => d.code)).toContain("ongepland-doel");
 
-  const bare = await loadVault(createMemoryFs({ "data/config.md": "---\n---\n" }));
+  const bare = await loadVault(createMemoryFs({ "config.md": "---\n---\n" }));
   expect(bare.roadmap).toEqual({ items: [], refs: [], issues: [] });
 });
 
 test("editing the roadmap creates the file when it is missing", async () => {
-  const fs = createMemoryFs({ "data/config.md": "---\nsemesterstart: 2026-09-07\n---\n" });
+  const fs = createMemoryFs({ "config.md": "---\nsemesterstart: 2026-09-07\n---\n" });
   await editRoadmapFile(fs, [{ action: "add", fields: { titel: "Advies", datum: "week 2", tot: "week 5" } }]);
   const vault = await loadVault(fs);
   expect(vault.roadmap.items).toMatchObject([{ titel: "Advies", start: "2026-09-14", eind: "2026-10-09" }]);
@@ -81,19 +81,7 @@ test("criteria, files and diagnostics come with the snapshot", async () => {
 });
 
 test("a vault without config is rejected", async () => {
-  await expect(loadVault(createMemoryFs({}))).rejects.toThrow("data/config.md");
-});
-
-test("search includes text extracted from attachments", async () => {
-  const vault = await loadVault(
-    createMemoryFs({
-      "data/config.md": "---\n---\n",
-      "logboek/evidence/2026-09-12-deck.md": "---\nbestanden: [deck.pptx]\n---\n# Deck\n",
-      "logboek/files/deck.pptx": "",
-      "logboek/files/.extracted/deck.pptx.txt": "stakeholderanalyse",
-    }),
-  );
-  expect(vault.search.search("stakeholder").map((hit) => hit.entry.id)).toEqual(["logboek/evidence/2026-09-12-deck"]);
+  await expect(loadVault(createMemoryFs({}))).rejects.toThrow("config.md");
 });
 
 test("an existing vault has nothing missing", async () => {
@@ -102,7 +90,7 @@ test("an existing vault has nothing missing", async () => {
 
 test("an arbitrary folder reports what a vault needs", async () => {
   const fs = createMemoryFs({ "notes.md": "" });
-  expect(await missingVaultPaths(fs)).toEqual(["data/config.md", "logboek/daily", "logboek/evidence"]);
+  expect(await missingVaultPaths(fs)).toEqual(["config.md", "logboek/daily", "logboek/evidence"]);
 });
 
 test("scaffolding creates a vault that loads", async () => {
@@ -110,7 +98,7 @@ test("scaffolding creates a vault that loads", async () => {
   await scaffoldVault(fs, { student_naam: "Gijs", projectnaam: "X", semesterstart: "2026-09-07", sprintlengte_weken: 3 });
 
   expect(await missingVaultPaths(fs)).toEqual([]);
-  expect(await fs.readText("data/config.md")).toMatch(
+  expect(await fs.readText("config.md")).toMatch(
     /^---\nstudent_naam: Gijs\n.*sprintlengte_weken: 3\nsemesterlengte_weken: 20\n---\n\n# Configuratie/s,
   );
   const vault = await loadVault(fs);
@@ -127,20 +115,13 @@ test("scaffolding rejects an invalid config", async () => {
   await expect(scaffoldVault(createMemoryFs({}), { semesterstart: "7-9-2026", sprintlengte_weken: 2 })).rejects.toThrow();
 });
 
-test("hidden files are not attachments, and an unreadable cache does not block loading", async () => {
-  const base = createMemoryFs({
-    "data/config.md": "---\n---\n",
+test("hidden files are not attachments", async () => {
+  const fs = createMemoryFs({
+    "config.md": "---\n---\n",
     "logboek/files/.gitkeep": "",
     "logboek/files/.DS_Store": "",
     "logboek/files/deck.pptx": "",
   });
-  const fs = {
-    ...base,
-    readText: async (path: string) => {
-      if (path.includes(".extracted/")) throw new Error("forbidden path");
-      return base.readText(path);
-    },
-  };
 
   const vault = await loadVault(fs);
   expect(vault.files).toEqual(["deck.pptx"]);
