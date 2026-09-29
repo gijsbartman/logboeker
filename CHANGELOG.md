@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/gijsbartman/logboeker/compare/v0.4.0...v0.5.0) (2026-09-29)
+
+
+### Features
+
+* add logboek, setup, stories, and toezichthouder Claude skills ([#18](https://github.com/gijsbartman/logboeker/issues/18)) ([95cfc48](https://github.com/gijsbartman/logboeker/commit/95cfc48a0b5e28d44a4d006af45830e3fd5bfc0e))
+
+
+### Documentation
+
+* update README.md and add CONTRIBUTING.md ([#16](https://github.com/gijsbartman/logboeker/issues/16)) ([77fd8c5](https://github.com/gijsbartman/logboeker/commit/77fd8c5e2494e7384823365b7cb1a698762fb0b2))
+
 ## [0.4.0](https://github.com/gijsbartman/logboeker/compare/v0.3.0...v0.4.0) (2026-09-26)
 
 
