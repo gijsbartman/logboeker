@@ -41,6 +41,11 @@
           "type": "toml",
           "path": "apps/desktop/src-tauri/Cargo.lock",
           "jsonpath": "$.package[?(@.name.value == 'desktop')].version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/logboeker/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
         }
       ]
     }

@@ -37,6 +37,16 @@ A complete example lives in [fixtures/vault](fixtures/vault).
 | `packages/typescript-config` | Shared `tsconfig` bases                                               |
 | `packages/vitest-config`     | Shared Vitest config and coverage report merging                      |
 | `fixtures/vault`             | Sample vault used in tests and development                            |
+| `plugins/logboeker`          | Claude Code plugin with the logbook skills                            |
+
+## Claude Code
+
+This repository is also a Claude Code plugin marketplace. To use the logbook skills in a vault, open Claude Code in the vault folder and run:
+
+```sh
+/plugin marketplace add gijsbartman/logboeker
+/plugin install logboeker@logboeker
+```
 
 ## Development
 
