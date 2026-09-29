@@ -5,7 +5,9 @@ description: Voert de dagelijkse check-in en check-out uit en legt die vast in l
 
 # Logboek
 
-Deze skill begeleidt twee momenten per dag: een **check-in** 's ochtends en een **check-out** 's middags of 's avonds. Beide schrijven naar hetzelfde bestand, `logboek/daily/YYYY-MM-DD.md`. De projectcontext (projectnaam, rol, tracker, code-repo) staat in `data/config.md`.
+Deze skill begeleidt twee momenten per dag: een **check-in** 's ochtends en een **check-out** 's middags of 's avonds. Beide schrijven naar hetzelfde bestand, `logboek/daily/YYYY-MM-DD.md`. De projectcontext (projectnaam, rol, tracker, code-repo) staat in `config.md` in de root van het logboek, de beschrijving van het project zelf in `project.md`.
+
+De student bekijkt het logboek in de Logboeker-app. Die leest de bestanden rechtstreeks en ververst vanzelf als er iets verandert; er is geen buildstap. De app valideert ook: wat hieronder als fout staat aangemerkt, toont de app als fout bij de entry. Schrijf dus altijd in het formaat dat hier staat.
 
 Het probleem dat deze skill oplost is tweeledig. Zonder check-in begint de dag zonder structuur en wordt de drempel om te loggen zo hoog dat er niks gebeurt. Zonder check-out leg je te weinig vast tijdens het werk en moet je aan het eind van het semester bewijs reconstrueren dat je half vergeten bent.
 
@@ -19,7 +21,7 @@ Het probleem dat deze skill oplost is tweeledig. Zonder check-in begint de dag z
 | Detailniveau | Laag. Geen bewijs, geen spans | Hoog. Dit is het bewijsdeel |
 | Doorvragen | Nee, alleen voorstellen | Ja, gericht op criteria |
 
-De `## Check-in` en `## Check-out` koppen zijn vast en altijd aanwezig als dat blok er is: ze maken de twee helften ook visueel uit elkaar in de viewer, los van elkaar doorzoekbaar en filterbaar. Alles wat bij die helft hoort komt er als `###` onder, nooit als eigen `##`.
+De `## Check-in` en `## Check-out` koppen zijn vast en altijd aanwezig als dat blok er is: ze maken de twee helften ook visueel uit elkaar in de app. De app herkent het planningsdeel aan de kop `### Wat ga ik doen vandaag?` en waarschuwt als daar een span in staat. Alles wat bij die helft hoort komt er als `###` onder, nooit als eigen `##`.
 
 Schrijf bij de check-in dus geen spans en geen uitgebreide beschrijvingen. Dat is verspilde moeite, want 's avonds herschrijf je het toch op basis van wat er echt gebeurd is.
 
@@ -27,7 +29,7 @@ Schrijf bij de check-in dus geen spans en geen uitgebreide beschrijvingen. Dat i
 
 De student hoort niet te hoeven vertellen wat er gisteren gebeurde of wat er op het bord staat. Dat zoek je op.
 
-**Config eerst.** Lees `data/config.md`. Daar staan de projectsleutel, de site, het pad naar de code-repo en de statussen van het bord. Ontbreekt het bestand of is een veld dat je nodig hebt leeg, gebruik dan de setup skill in plaats van te raden of te vragen. Hieronder staat `{veldnaam}` voor de waarde uit die config.
+**Config eerst.** Lees `config.md`. Daar staan de projectsleutel, de site, het pad naar de code-repo en de statussen van het bord. Ontbreekt het bestand of is een veld dat je nodig hebt leeg, gebruik dan de setup skill in plaats van te raden of te vragen. Hieronder staat `{veldnaam}` voor de waarde uit die config.
 
 **Tracker.** Is `tracker: geen`, sla dit hele blok over. Bij `jira`: gebruik de Atlassian MCP-tools op `{jira_site}`. De JQL die je bijna altijd wilt:
 
@@ -59,7 +61,9 @@ Commits zijn ruw materiaal, geen bewijs. Ze vertellen wat er is veranderd, niet 
 
 **Gisteren.** Lees de vorige entry in `logboek/daily/`, vooral het `### Openstaand` blok onder `## Check-out`. Lees ook de twee dagen daarvoor, want dan zie je of iets blijft hangen.
 
-**Criteria.** Lees `data/vaardigheden.md` en `data/hboi.md` voordat je doorvraagt. Baseer doorvragen uitsluitend op de letterlijke criteriateksten daar. Ontbreekt een van beide of ontbreekt `data/.last-fetched`, gebruik dan de lef-data skill. Verzin nooit eigen criteria, want een entry die op een verzonnen criterium is gebouwd houdt geen stand bij de beoordeling.
+**Roadmap.** Lees `logboek/roadmap.md`. In de frontmatter staan `ambitie` en `doelniveaus`: per vaardigheid het niveau dat de student dit semester wil halen. Onder `planning:` staan de geplande producten, evaluaties en ontwikkelgesprekken. Ontbreekt de roadmap of staan er geen `doelniveaus` in, noem dat één keer en verwijs naar de roadmap skill.
+
+**Criteria.** Lees `data/markdown/vaardigheden.md` en `data/markdown/hboi.md` voordat je doorvraagt. Baseer doorvragen uitsluitend op de letterlijke criteriateksten daar. Ontbreekt een van beide of ontbreekt `data/.last-fetched`, gebruik dan de lef-data skill. Verzin nooit eigen criteria, want een entry die op een verzonnen criterium is gebouwd houdt geen stand bij de beoordeling.
 
 ## Check-in
 
@@ -84,7 +88,7 @@ Die laatste regel alleen als het zo is. Iets dat drie dagen op In Progress staat
 
 ### 2. Doe een voorstel voor vaardigheden
 
-Kijk naar welke vaardigheden de afgelopen twee weken niet zijn geraakt, en of het werk van vandaag daar toevallig ruimte voor biedt. Eén of twee suggesties, concreet, uit de criteriatekst:
+Kijk naar welke vaardigheden de afgelopen twee weken niet zijn geraakt, en of het werk van vandaag daar toevallig ruimte voor biedt. Geef voorrang aan vaardigheden waarvan het doelniveau in de roadmap nog niet in de spans terugkomt, en aan vaardigheden met een evaluatie die binnenkort op de roadmap staat. Eén of twee suggesties, concreet, uit de criteriatekst:
 
 ```
 Suggestie: overzicht-creeren is twee weken niet langsgekomen. Als je vandaag
@@ -109,7 +113,6 @@ vaardigheden: []
 beroepstaken: []
 doelen: []
 jira: [PROJ-14, PROJ-17]
-evidence: []
 retroactief: false
 ---
 
@@ -130,11 +133,11 @@ retroactief: false
 
 Vaardigheden en doelen laat je bij de check-in leeg of voorlopig. Ze worden pas echt ingevuld bij de check-out, want dan weet je wat er werkelijk gebeurd is. Het `jira:` veld vul je wel meteen, met de issues waar de dag op gericht is.
 
-**Sprint, week en rol horen niet in deze frontmatter.** De viewer en de toezichthouder berekenen sprint- en weeknummer zelf uit `date` en `semesterstart`/`sprintlengte_weken` in `data/config.md`; rol staat daar ook al centraal. Zet ze dus niet per entry, dat is precies het soort veld dat na een paar weken stilzwijgend fout komt te staan.
+**Sprint, week en rol horen niet in deze frontmatter.** De app en de toezichthouder berekenen sprint- en weeknummer zelf uit `date` en `semesterstart`/`sprintlengte_weken` in `config.md`; rol staat daar ook al centraal. Zet ze dus niet per entry, dat is precies het soort veld dat na een paar weken stilzwijgend fout komt te staan.
+
+De velden die de app kent zijn `date`, `titel`, `portflow_naam`, `vaardigheden`, `beroepstaken`, `doelen`, `bestanden`, `jira` en `retroactief`. `vaardigheden` bevat alleen de vaste slugs hieronder; een onbekende slug is een fout. `retroactief` is `true` of `false`. De titel komt uit de `#`-kop, tenzij `titel:` hem overschrijft.
 
 Laat `### Hulpvragen` weg als er geen zijn. Een lege kop is ruis. De `## Check-in` kop zelf laat je altijd staan zodra er een check-in-blok is.
-
-Draai daarna `./logboeker build`.
 
 ## Check-out
 
@@ -200,9 +203,9 @@ Tag alleen wat de entry echt aantoont. Een dag waarop je code schreef zonder ove
 
 Grensgeval? Tag het wel, maar noem in de tekst waarom het zwak is.
 
-### 5. Draai het buildscript
+### 5. Controleer het bestand
 
-`./logboeker build`. Geen aankondiging nodig, gewoon uitvoeren.
+Loop voor je afsluit na wat de app als fout zou tonen: elke span op een vaardigheid heeft een `niveau`, elke slug bestaat, elke `@`-verwijzing wijst naar een bestaande entry, en elk genoemd bestand staat in `logboek/files/`. Klopt iets niet, herstel het meteen in plaats van het te melden.
 
 ## Twee niveaus van labelen
 
@@ -218,7 +221,7 @@ call moet erdoorheen en een niet-bestaande methode moet een compile-fout
 geven.]{.plannen .kwalitatief-product-maken niveau=2}
 ```
 
-Dit is Pandoc's bracketed-span syntax, dus het blijft geldige markdown. De viewer licht deze passages op wanneer je op die vaardigheid filtert, en de evaluator citeert ze als bewijs in plaats van de hele entry.
+Dit is Pandoc's bracketed-span syntax, dus het blijft geldige markdown. De app licht deze passages op wanneer je op die vaardigheid filtert, en de evaluator citeert ze als bewijs in plaats van de hele entry.
 
 Spans zijn het belangrijkste onderdeel van de check-out. Een entry met alleen frontmatter-tags dwingt je later om zelf terug te zoeken welke zin nou eigenlijk het bewijs was; een gelabelde passage niet.
 
@@ -227,7 +230,8 @@ Spans zijn het belangrijkste onderdeel van de check-out. Een entry met alleen fr
 - Alleen in het check-out-deel. Nooit in de check-in, daar is nog niks gebeurd.
 - Label een hele zin of twee, niet een los woord. Een span moet op zichzelf leesbaar zijn, want de evaluator citeert hem los van zijn context.
 - Meerdere vaardigheden in één span mag, als het echt dezelfde passage betreft.
-- `niveau=N` alleen invullen als je met redelijke zekerheid kunt zeggen welk niveau die passage raakt. Bij twijfel weglaten; een verkeerd niveau is misleidender dan geen niveau.
+- Een span met een vaardigheid heeft altijd `niveau=N`, met N van 1 tot en met 4. Zonder niveau toont de app een fout. Kies het niveau waarvan de criteriatekst het beste bij de passage past, en bij twijfel het laagste niveau dat je kunt verdedigen. Twijfel je tussen twee niveaus, vraag het de student; een te hoog niveau is misleidender dan een te laag.
+- Een span met alleen een beroepstaak (`.bt-...`) heeft geen niveau nodig.
 - Spans mogen niet overlappen of genest zijn, dat kan de parser niet aan.
 - Beroepstaken krijgen het prefix `bt-`, dus `[tekst]{.bt-software-realiseren}`.
 - Niet alles hoeft gelabeld. Twee tot vier goede spans per dag is meer waard dan tien vage.
@@ -251,7 +255,7 @@ Een startpunt, geen regel. Ga altijd terug naar de echte criteriatekst.
 
 ## Slugs zijn vast
 
-De viewer en evaluator filteren hierop:
+De app en de evaluator filteren hierop, en een andere klasse in een span is een fout:
 
 `juiste-kennis-ontwikkelen`, `kwalitatief-product-maken`, `overzicht-creeren`, `kritisch-oordelen`, `samenwerken`, `boodschap-delen`, `plannen`, `flexibel-opstellen`, `pro-actief-handelen`, `reflecteren`
 
@@ -263,13 +267,45 @@ Toets voor je een nieuw doel aanmaakt: is dit iets wat je straks als geheel gaat
 
 De naam van een doel beschrijft het **product**, nooit de beroepstaak of activiteit erin (dus niet `advies` of `analyse`, want dat zijn al de HBO-i-beroepstaken zelf). Bijvoorbeeld `projectstructuur` voor het traject codebase-analyse → ontwerp → structuuradvies → realisatie voor een frontend-beroepsrol-pakket: dat ene doel loopt dan over meerdere dagen en meerdere entries, tot het geëvalueerd is. Pas daarna begint een nieuw doel.
 
-Twijfel je of iets bij een bestaand doel hoort of een nieuw doel wordt: vraag het, verzin niet. Kijk voor het schrijven welke doelen al bestaan en of de dag daar inhoudelijk bij aansluit, niet alleen qua timing.
+Twijfel je of iets bij een bestaand doel hoort of een nieuw doel wordt: vraag het, verzin niet. Kijk voor het schrijven welke doelen al bestaan en of de dag daar inhoudelijk bij aansluit, niet alleen qua timing. Bestaande doelen vind je op twee plekken: het `doel:` veld van de items in `logboek/roadmap.md`, en de `doelen:` van eerdere entries.
 
-De frontmatter hoeft niet alles te herhalen wat in spans staat: het buildscript voegt spanlabels automatisch samen met de frontmatter-tags. Zet in frontmatter dus alleen wat over de dag als geheel gaat.
+Gebruik exact dezelfde slug als het bestaande doel. De app waarschuwt als een doel sterk lijkt op een ander (`tokenlaag` naast `token-laag`) en als een doel niet in de roadmap staat. Komt er echt een nieuw doel bij, stel dan voor om er een roadmap-item voor toe te voegen, met de roadmap skill of direct in `logboek/roadmap.md`.
+
+De frontmatter hoeft niet alles te herhalen wat in spans staat: de app voegt spanlabels automatisch samen met de frontmatter-tags. Zet in frontmatter dus alleen wat over de dag als geheel gaat.
+
+## Verwijzen naar andere entries
+
+De app kent vier vormen, en toont bij elke entry wat ernaar verwijst:
+
+| Vorm | Wijst naar |
+|---|---|
+| `@2026-09-09` | De daily entry van die dag |
+| `@[ADR 001 Tokenlaag]` | Een entry met die `portflow_naam` of titel, hoofdletterongevoelig |
+| `@slug` | Hetzelfde, voor een naam zonder spaties |
+| `@{2026-09-12-deck.pptx}` | Een bestand in `logboek/files/` |
+
+Een verwijzing die nergens heen wijst is een fout. Controleer dus of het doel bestaat voordat je ernaar verwijst, en schrijf de naam precies zoals in de `titel`, de `#`-kop of de `portflow_naam` van dat bestand.
 
 ## Losse bewijsstukken
 
-Kwam er die dag een concreet product klaar dat als bewijsstuk kan dienen (onderzoek, ADR, reflectie, gespreksverslag, of een extern bestand), schrijf dat als apart bestand in `logboek/evidence/YYYY-MM-DD-slug.md` en verwijs ernaar in de `evidence:` frontmatter van de daily entry, met `@[Titel]` in de body.
+Kwam er die dag een concreet product klaar dat als bewijsstuk kan dienen (onderzoek, ADR, reflectie, gespreksverslag, of een extern bestand), schrijf dat als apart bestand in `logboek/evidence/YYYY-MM-DD-slug.md` en verwijs ernaar vanuit de body van de daily entry met `@[Titel]`. Die verwijzing is de koppeling; een apart frontmatter-veld is niet nodig.
+
+```markdown
+---
+date: 2026-09-09
+titel: ADR 001 Tokenlaag in app.css
+portflow_naam: ADR 001 Tokenlaag
+vaardigheden: [kritisch-oordelen]
+beroepstaken: [software-ontwerpen]
+doelen: [tokens]
+---
+
+# ADR 001: tokenlaag in app.css
+
+[Drie opties afgewogen ...]{.kritisch-oordelen niveau=2}
+```
+
+`titel` is de naam waaronder het bewijsstuk in de app en in verwijzingen verschijnt. `portflow_naam` is de naam zoals het in Portflow staat of komt te staan; vraag die als hij afwijkt van de titel, en verzin hem niet. Beide werken als doel van `@[...]`.
 
 Let op: reflecties moet je zelf schrijven, AI mag die niet formuleren of herschrijven. Bij een reflectie leg je dus alleen vast dat hij bestaat en waar hij over gaat, niet de inhoud.
 
@@ -277,13 +313,13 @@ Let op: reflecties moet je zelf schrijven, AI mag die niet formuleren of herschr
 
 **Een bestand hoort altijd bij een bewijsstuk, nooit rechtstreeks in een daily-log.** Het `bestanden:`-veld en `@{naam.ext}` horen thuis in `logboek/evidence/*.md`, niet in `logboek/daily/*.md`. Reden: een bewijsstuk is een vaste referentie die vanuit meerdere plekken aangewezen kan worden; een bestand dat aan één specifieke dag hangt, is dat niet. Kom je een product tegen dat een bestand is (PDF, PPTX, DOCX, LaTeX, een afbeelding), maak er dus eerst een evidence-entry voor, ook als er verder weinig te schrijven valt, en verwijs daarna vanuit de daily naar dat bewijsstuk met `@[Titel]`.
 
-Is het product een bestand, zet het dan in `logboek/files/` en noem het in de frontmatter van het evidence-bestand:
+Is het product een bestand, zet het dan direct in `logboek/files/`, niet in een submap, en noem het in de frontmatter van het evidence-bestand. Een genoemd bestand dat daar niet staat is een fout in de app.
 
 ```yaml
 bestanden: [2026-09-12-sprintreview.pptx, 2026-09-12-notulen.pdf]
 ```
 
-Gaat een specifieke zin over een specifiek bestand, verwijs er dan in de body van datzelfde evidence-bestand naar met `@{2026-09-12-sprintreview.pptx}`. In de viewer klapt het bestand open op de plek waar je erover schrijft.
+Gaat een specifieke zin over een specifiek bestand, verwijs er dan in de body van datzelfde evidence-bestand naar met `@{2026-09-12-sprintreview.pptx}`. In de app klapt het bestand open op de plek waar je erover schrijft.
 
 Twee dingen om hier scherp op te zijn:
 

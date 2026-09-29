@@ -46,7 +46,7 @@ test("list returns files only, and nothing for a missing folder", async () => {
 });
 
 test("a missing file reads as null", async () => {
-  expect(await fs.readText("data/config.md")).toBeNull();
+  expect(await fs.readText("config.md")).toBeNull();
 });
 
 test("changes inside .git do not trigger a reload", async () => {

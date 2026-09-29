@@ -1,103 +1,176 @@
 ---
 name: toezichthouder
-description: Vergelijkt wat er in logboek/daily/ en logboek/evidence/ staat met de fasering in PLAN.md en de huidige datum, en rapporteert of de student op schema ligt voor niveau 3 op alle Open-ICT vaardigheden. Signaleert wat achterloopt, wat ontbreekt, wat goed gaat en wat de komende twee weken moet gebeuren. Gebruik deze skill altijd wanneer de student vraagt "hoe sta ik ervoor", "loop ik achter", "status", "toezichthouder", om een voortgangscheck, een wekelijkse review, of wanneer de student wil weten of hij of zij nog op koers ligt voor het semester. Ook gebruiken bij vragen over de harde afhankelijkheden of de faseplanning. Niet gebruiken om een enkele vaardigheid diepgaand te beoordelen, dat is de evaluator skill.
+description: Toetst de semester roadmap in logboek/roadmap.md aan de semesternorm en aan wat er werkelijk in logboek/daily/ en logboek/evidence/ staat, en adviseert. Haalt de gekozen doelniveaus samen de norm voor dit semester en de gekozen ambitie? Is elk doelniveau haalbaar met het bewijs dat er ligt en de producten en evaluaties die gepland staan, of is een ander niveau realistischer, omlaag of omhoog? Wat ontbreekt er in de roadmap, en wat loopt achter? Bereidt ook ontwikkelgesprekken voor. Gebruik deze skill altijd wanneer de student vraagt "hoe sta ik ervoor", "loop ik achter", "haal ik mijn niveaus", "klopt mijn roadmap", "status", "toezichthouder", "ontwikkelgesprek voorbereiden", om een voortgangscheck of een wekelijkse review. Niet gebruiken om de roadmap te maken of te herschrijven (roadmap skill) of om een enkele vaardigheid diepgaand te beoordelen (evaluator skill).
 ---
 
 # Toezichthouder
 
-Deze skill kijkt van bovenaf naar het hele semester: ligt de student op schema volgens `PLAN.md`, of loopt er iets uit dat later niet meer te repareren is.
+Deze skill kijkt van bovenaf naar het hele semester en geeft advies. De vraag is niet alleen "loopt het volgens plan", maar ook "brengt dit plan de student waar hij heen wil": haalt de roadmap de norm, zijn de doelniveaus haalbaar met wat er ligt en gepland staat, en wat ontbreekt er nog.
 
-Het verschil met de evaluator: die kijkt diep naar één vaardigheid, deze kijkt breed naar alles en naar de tijd. De vraag hier is niet "is dit bewijs goed genoeg" maar "gebeurt er genoeg, op tijd".
+Het verschil met de evaluator: die kijkt diep naar één vaardigheid en naar de kwaliteit van het bewijs. Deze kijkt breed naar alle tien, naar de planning en naar de tijd. Het verschil met de roadmap skill: die maakt en herziet de roadmap samen met de student, deze beoordeelt hem en stelt wijzigingen voor.
 
-## Waarom timing hier het hele punt is
+## Wat je leest
 
-Vier dingen in het plan zijn onherstelbaar als ze te laat starten:
+- `config.md`: `semester`, `semesterstart`, `sprintlengte_weken`, `semesterlengte_weken`. Ontbreekt `semester` of `semesterstart`, gebruik de setup skill.
+- `project.md`: context bij wat haalbaar is.
+- `logboek/roadmap.md`: in de frontmatter `ambitie`, `doelniveaus` en `planning:`. Ontbreekt de roadmap of hebben de doelniveaus geen waarde, dan is dat de eerste bevinding, en verwijs je naar de roadmap skill.
+- `logboek/daily/` en `logboek/evidence/`: frontmatter en spans.
+- `data/markdown/vaardigheden.md` voor de criteria. Ontbreekt dat of is het verouderd, gebruik de lef-data skill.
 
-1. **Indirect betrokkenen buiten de opleiding** (week 1 tot 3) blokkeren Samenwerken N3 en Overzicht creëren N3. Zijn ze er in week 6 nog niet, dan komen ze er meestal niet meer.
-2. **De strategienotitie van de opdrachtgever** (week 2) blokkeert Flexibel opstellen N3 en Reflecteren N3.
-3. **Twee initiatieven met nulmeting** (week 2 en 3) blokkeren Pro-actief handelen N3, omdat effect zonder nulmeting niet aantoonbaar is.
-4. **Keuze van HBO-i niveau 3 producten** (week 2) blokkeert Kwalitatief product maken N3.
+## Rekenen met weken
 
-Bij elke run: check deze vier expliciet en apart, ongeacht welke fase het is. Als er één ontbreekt en de deadline is gepasseerd, is dat het belangrijkste dat je die run te melden hebt.
+Reken zoals de app, anders kloppen je weeknummers niet met de kalender die de student ziet:
+
+- Week 1 is de week (maandag tot en met zondag) waarin `semesterstart` valt. Week N begint N-1 weken na die maandag.
+- Sprint = (week - 1) gedeeld door `sprintlengte_weken`, naar beneden afgerond, plus 1.
+- Een roadmap-item met alleen `datum: week N` is een deadline op de vrijdag van week N. Met `tot` erbij begint het op de maandag van week N en eindigt het op de vrijdag van de `tot`-week.
+- Status van een item: **afgerond** als `afgerond` gezet is; **verlopen** als dat niet zo is en de einddatum voorbij is; **bezig** als het een periode is en vandaag erin valt; anders **gepland**.
+
+## De semesternorm
+
+**Op niveau** is de rij van het eigen semester. **Boven niveau** is de rij van het volgende semester; voor semester 7 is dat 8 op 3, 2 op 2, en kwalitatief product maken op 3.
+
+| Semester | Niveau opdracht | Op niveau (LEF) | Kwalitatief product maken | Beheersingsniveau hbo-i |
+|---|---|---|---|---|
+| 1 | Taak | 4 van 10 op 1 | nvt | |
+| 2 | Taak | 8 van 10 op 1 | minimaal 1 | T |
+| 3 | Probleem | 4 op 2, 6 op 1 | minimaal 1 | |
+| 4 | Probleem | 8 op 2, 2 op 1 | minimaal 2 | P |
+| 5 | Situatie | 3 op 3, 7 op 2 | minimaal 2 | |
+| 6 | Situatie (keuze, minor) | 4 op 3, 6 op 2 | minimaal 2 | |
+| 7 | Situatie | 5 op 3, 5 op 2 | minimaal 2 | |
+| 8 | Afstuderen | geen LEF-norm, BOKSA | | S |
+
+Deze tabel staat ook in de roadmap skill. Pas je hem aan, pas hem daar ook aan.
+
+"3 op 3, 7 op 2" betekent minstens 3 vaardigheden op niveau 3 of hoger en minstens 10 op 2 of hoger. Een hoger niveau telt mee voor de lagere treden. Kwalitatief product maken telt mee bij de tien en heeft daarnaast een eigen minimum. In semester 8 gelden de afstudeerregels; sla de normtoets dan over en zeg dat.
 
 ## Werkwijze
 
-### 1. Bepaal waar in het semester we zijn
+### 1. Normtoets
 
-Lees de huidige datum. De startdatum van het semester staat als `semesterstart` in `data/config.md`; bepaal daarmee de semesterweek en de bijbehorende fase uit `PLAN.md`. Is dat veld leeg, gebruik dan de setup skill om het te laten invullen, zodat volgende runs hem hebben.
+Tel de `doelniveaus` en vergelijk met de norm voor `semester` en `ambitie`. Klopt het niet, dan is dat het belangrijkste van dit rapport: een roadmap die op papier de norm al niet haalt, haalt hem in de praktijk zeker niet.
 
-De fasering uit het plan:
+Zeg concreet wat er mist: "Voor op niveau in semester 5 heb je 3 op 3 nodig, je roadmap heeft er 2."
 
-| Fase | Weken | Kern |
-|---|---|---|
-| 0 Fundament | 1-3 | De vier harde afhankelijkheden |
-| 1 N1/N2-bewijs | 4-8 | Research story 1, kennisdelingen, initiatieven lopen |
-| 2 Evaluatieronde 1 | 5-9 | Tien evaluaties op N1/N2, in twee blokken |
-| 3 N3-bewijs | 9-16 | Research story 2 en 3, overtuigende sessie, roadmap-herzieningen |
-| 4 Evaluatieronde 2 | 14-18 | Tien evaluaties op N3, in twee blokken |
-| 5 Repareren | 18-20 | Gaten dichten, consistentiecontrole, indiening |
+### 2. Haalbaarheid per vaardigheid
 
-Lees daarna `logboek/roadmap.md`. Items zonder `afgerond` waarvan de datum (of `tot`, bij een periode) voorbij is, zijn achterstand; items waarvan het `bewijs` al bestaat maar die nog niet afgerond zijn, meld je als "kan afgevinkt worden". Stel voor de roadmap bij te werken, niet `PLAN.md`, als alleen de datums schuiven.
+Maak voor elke vaardigheid met een doelniveau de balans op:
 
-### 2. Lees wat er werkelijk is
+- **Bewijs tot nu toe**: spans met die vaardigheid, per niveau hoe vaak, en in hoeveel verschillende entries. Frontmatter-tags zonder span tellen als dun bewijs. Kijk ook naar de datum: bewijs van de afgelopen vier weken zegt meer over waar de student nu staat.
+- **Wat er nog gepland staat**: roadmap-items met die vaardigheid, en of er een evaluatie-item is op het doelniveau.
+- **Tijd**: hoeveel weken er nog zijn tot de geplande evaluatie, en tot week 17.
+- **Criteria**: wat de criteriatekst op het doelniveau vraagt, en of het geplande werk daar een kans op geeft.
 
-Scan `logboek/daily/` en `logboek/evidence/`. Kijk naar drie dingen:
+Geef per vaardigheid een oordeel: **op koers**, **krap**, of **niet haalbaar zonder bijsturen**. Bij krap of niet haalbaar: waarom, en wat de kleinste actie is die het verschil maakt.
 
-- **Dekking**: welke vaardigheden zijn de afgelopen vier weken gelabeld, en welke helemaal niet. Kijk daarbij zowel naar frontmatter-tags als naar inline spans (`[tekst]{.vaardigheid niveau=N}`); een vaardigheid die alleen in frontmatter voorkomt maar nooit in een span heeft dun bewijs, ook al lijkt de dekking op papier goed
-- **Frequentie**: hoeveel dagen zijn er gelogd versus hoeveel werkdagen er verstreken zijn
-- **Mijlpalen**: staan de artefacten uit het plan er (stakeholderanalyse, strategienotitie, roadmapversies, research stories, initiatiefnotities)
+Adviseer daarna over het doelniveau zelf, in twee richtingen:
 
-Een vaardigheid die vier weken lang in geen enkele entry voorkomt is een signaal, ook als er verder niets misgaat. Bij tien vaardigheden en twintig weken is stilte de meest voorkomende faalmodus.
+- **Omlaag**: "Plannen staat op 3, maar na 8 weken zijn er alleen spans op niveau 1 en staat er geen herziening van de planning op de roadmap. Niveau 2 is realistischer, tenzij je de komende twee weken de langetermijnplanning herziet en dat vastlegt."
+- **Omhoog**: "Kritisch oordelen staat op 2, maar je hebt al drie sterke spans op niveau 3 uit verschillende weken. Je zou het op 3 kunnen zetten."
 
-Als je twijfelt of een criterium nog actueel is (bijvoorbeeld bij een van de vier harde afhankelijkheden), check dat tegen `data/vaardigheden.md`. Ontbreekt dat bestand of is het duidelijk verouderd, gebruik dan de lef-data skill om het te verversen voordat je verder rapporteert.
+Laat bij elk voorstel zien wat het met de norm doet. Een verlaging die de norm breekt, gaat samen met een voorstel welke andere vaardigheid omhoog kan: "Plannen naar 2 kan als kritisch oordelen naar 3 gaat; dan blijf je op 3 op 3."
 
-### 3. Rapporteer
+Je stelt voor, de student beslist. Pas `doelniveaus` niet zelf aan; verwijs voor het doorvoeren naar de roadmap skill, of doe het alleen als de student er expliciet om vraagt.
 
-Gebruik altijd deze structuur, in deze volgorde. De volgorde is bewust: eerst wat urgent is, dan wat goed gaat, dan wat eraan komt. Andersom leest prettiger maar werkt slechter.
+### 3. Gaten in de roadmap
+
+Loop na wat er ontbreekt of misgaat:
+
+- Een vaardigheid met een doelniveau maar zonder evaluatie-item, of zonder product of bewijs waar die evaluatie op kan leunen.
+- Evaluaties na week 17, in de verbeterweken, of te veel in dezelfde week.
+- Ontbrekende vaste momenten: ontwikkelgesprekken om de twee weken, feedback op de roadmap uiterlijk in week 4 (met notitie in Portflow), minstens één voortgangsgesprek tussen week 9 en 11, de verbeterweken.
+- **Aanlooptijd**: criteria op niveau 3 die iets vragen dat vroeg moet beginnen. Lees de criteriatekst erop na; typische voorbeelden zijn betrokkenen buiten de opleiding, een nulmeting vóór een initiatief om effect te kunnen aantonen, of een planning die tussentijds herzien moet zijn. Staat dat niet vroeg genoeg op de roadmap, meld het, want later is het niet meer te repareren.
+- **Verlopen items**: niet afgerond terwijl de einddatum voorbij is.
+- **Kan afgevinkt worden**: het bewijs uit `bewijs` bestaat al als entry, maar `afgerond` is niet gezet.
+- Kwalitatief product maken: vormt het geplande werk samen een herkenbaar pakket voor de beroepsrol, of zijn het losse producten?
+
+### 4. Gewoontes uit de logs
+
+Dit staat niet op de roadmap maar telt wel, en de coach vraagt ernaar:
+
+- **Frequentie**: hoeveel dagen er gelogd zijn tegenover het aantal werkdagen sinds `semesterstart`.
+- **Feedback ophalen** (reflecteren) en **feedback geven** (samenwerken): hoe vaak komt dat de afgelopen weken in de logs voor? Een paar weken niets is een signaal.
+- **Stilte**: een vaardigheid met een doelniveau die vier weken in geen enkele entry voorkomt. Bij tien vaardigheden en twintig weken is stilte de meest voorkomende faalmodus.
+
+### 5. Rapporteer
+
+Gebruik deze structuur, in deze volgorde. Eerst wat urgent is, dan wat goed gaat, dan wat eraan komt.
 
 ```
-# Status — week [N], fase [naam]
-[datum]
+# Status, week [N], sprint [M]
+[datum], semester [S], [op niveau | boven niveau]
 
-## Harde afhankelijkheden
-[De vier, elk met status: geregeld / open / te laat.
-Bij "te laat": wat de consequentie is en of het nog te redden valt.]
+## Norm
+[Haalt de roadmap de norm? Eén regel als het klopt, uitgewerkt als het niet klopt.]
 
-## Loopt achter
-[Wat volgens het plan al gebeurd had moeten zijn en niet in de logs staat.
-Per punt: wat het blokkeert en wat de kleinste actie is om het vlot te trekken.]
+## Advies per vaardigheid
+[Alleen de vaardigheden die krap of niet haalbaar zijn, of die omhoog kunnen.
+Per vaardigheid: doelniveau, wat er ligt, oordeel, voorstel en het effect op de norm.]
+
+## Roadmap
+[Gaten, verlopen items, items die afgevinkt kunnen worden.
+Per punt de kleinste actie die het oplost.]
 
 ## Gaat goed
-[Wat er wel ligt. Wees concreet en noem bewijsstukken bij naam.
-Dit blok overslaan als er echt niets is, maar dat is zeldzaam.]
+[Wat er wel ligt. Concreet, bewijsstukken bij naam.
+Alleen overslaan als er echt niets is, en dat is zeldzaam.]
 
 ## Komende twee weken
-[Wat er volgens het plan nu aan de beurt is. Maximaal vijf punten,
-in volgorde van urgentie.]
+[Wat er volgens de roadmap aan de beurt is, plus de acties hierboven.
+Maximaal vijf punten, op volgorde van urgentie.]
 
 ## Signaal
-[Eén observatie over een patroon in de logs die de student zelf waarschijnlijk
-niet ziet. Weglaten als er niets opvalt, niet verzinnen.]
+[Eén patroon in de logs dat de student zelf waarschijnlijk niet ziet.
+Weglaten als er niets opvalt, niet verzinnen.]
 ```
 
-### 4. Toon
+Sluit af met de vaardigheden die op koers liggen, in één regel, zodat het rapport compleet is zonder lang te worden.
 
-Wees eerlijk en concreet, niet bemoedigend. Deze skill is gemaakt om gecorrigeerd te worden, niet om gerustgesteld te worden. "Je loopt drie weken achter op research story 1 en dat schuift evaluatieronde 1 op" is bruikbaar; "je bent goed op weg maar let even op de planning" is dat niet.
+### 6. Toon
 
-Tegelijk: benoem wat er wel ligt en doe dat specifiek. Een rapport dat alleen tekortkomingen opsomt wordt na drie keer genegeerd, en dan werkt de hele opzet niet meer. Het blok "gaat goed" is er niet uit beleefdheid maar omdat het de skill bruikbaar houdt.
+Wees eerlijk en concreet, niet bemoedigend. "Je loopt drie weken achter op het onderzoek en dat schuift de evaluatie van overzicht creëren de verbeterweken in" is bruikbaar; "je bent goed op weg maar let even op de planning" is dat niet.
+
+Benoem ook wat er wel ligt, en doe dat specifiek. Een rapport dat alleen tekortkomingen opsomt wordt na drie keer genegeerd. Het blok "gaat goed" is er niet uit beleefdheid maar omdat het de skill bruikbaar houdt.
 
 Geen em-dashes. Geen opsomming van wat je hebt gecontroleerd, alleen wat je hebt gevonden.
 
-### 5. Weeg mee dat plannen schuiven
+### 7. Plannen schuiven, en dat mag
 
-Het plan is een hulpmiddel, geen contract. Als de student bewust iets anders heeft gedaan en dat in de logs onderbouwd staat, meld dat als afwijking en niet als achterstand. Vraag alleen door als de afwijking een van de vier harde afhankelijkheden raakt.
+De roadmap is een hulpmiddel, geen contract. Heeft de student bewust iets anders gedaan en staat dat in de logs onderbouwd, meld het als afwijking en niet als achterstand. Wijkt de werkelijkheid structureel af, stel dan voor de roadmap bij te werken met de roadmap skill. Een roadmap waar niemand meer naar kijkt is erger dan geen roadmap.
 
-Als de werkelijkheid structureel afwijkt van het plan, zeg dat en stel voor `PLAN.md` bij te werken. Een plan waar niemand meer naar kijkt is erger dan geen plan.
+## Voorbereiding ontwikkelgesprek
+
+Vraagt de student om een ontwikkelgesprek voor te bereiden, of staat er binnen een paar dagen een ontwikkelgesprek op de roadmap en vraagt de student om een status, geef dan dit overzicht. Het volgt de punten waarop de coach feedback geeft:
+
+```
+# Voorbereiding ontwikkelgesprek [N], [datum]
+
+## Evaluaties en semesterdoel (pro-actief handelen, plannen)
+[Hoeveel evaluaties gedaan en gepland, op welk niveau, tegenover de norm.]
+
+## Balans tussen uitdaging en vaardigheden (pro-actief handelen)
+[Waar de doelniveaus boven of onder wat het bewijs laat zien liggen.]
+
+## Plandoelen (plannen)
+[Welke roadmap-items gehaald, verlopen of verschoven zijn sinds het vorige gesprek.]
+
+## Feedback ophalen (reflecteren)
+[Wanneer en bij wie, volgens de logs. Of dat het ontbreekt.]
+
+## Feedback geven (samenwerken)
+[Idem.]
+
+## Om te bespreken
+[Twee of drie vragen of keuzes die de student aan de coach kan voorleggen.]
+```
+
+Dit is een overzicht om zelf mee verder te werken. De student bereidt het gesprek voor en formuleert zelf wat hij wil zeggen; schrijf geen reflectie of zelfevaluatie.
 
 ## Bij een wekelijkse geplande run
 
-Bij een automatische run zonder dat de student iets vraagt: houd het rapport korter. Alleen de harde afhankelijkheden, wat achterloopt, en de komende twee weken. Het volledige rapport met "gaat goed" en "signaal" is voor als er zelf om gevraagd wordt.
+Bij een automatische run zonder dat de student iets vraagt: houd het kort. Alleen de norm als die niet klopt, vaardigheden die niet haalbaar zijn zonder bijsturen, verlopen items en de komende twee weken.
 
 ## Wat deze skill niet doet
 
-Geen criteriamatrix bouwen, geen quality scores toekennen, geen evaluatieteksten schrijven. Als uit de status blijkt dat een vaardigheid een diepere check nodig heeft, zeg dat en verwijs naar de evaluator skill. Deze skill kijkt naar tijd en dekking, niet naar kwaliteit van bewijs.
+Geen criteriamatrix bouwen, geen quality scores toekennen, geen evaluatieteksten schrijven. Blijkt dat een vaardigheid een diepere check nodig heeft, zeg dat en verwijs naar de evaluator skill. De roadmap pas je niet zelf aan zonder dat de student erom vraagt.

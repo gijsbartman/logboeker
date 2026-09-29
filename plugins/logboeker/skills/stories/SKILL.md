@@ -11,7 +11,7 @@ Een story die achteraf wordt aangemaakt is geen boekhouding. Het is de plek waar
 
 ## Gegevens komen uit de config
 
-Lees `data/config.md` voordat je iets doet. Daar staan de site, de projectsleutel, het pad naar de code-repo, de statussen van het bord en het account-id van de student. Ontbreekt het bestand of is een veld leeg dat je nodig hebt, gebruik dan de setup skill in plaats van te raden.
+Lees `config.md` in de root van het logboek voordat je iets doet. Daar staan de site, de projectsleutel, het pad naar de code-repo, de statussen van het bord en het account-id van de student. Ontbreekt het bestand of is een veld leeg dat je nodig hebt, gebruik dan de setup skill in plaats van te raden.
 
 Hieronder staat `{veldnaam}` voor de waarde uit die config.
 

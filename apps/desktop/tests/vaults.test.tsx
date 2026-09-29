@@ -92,7 +92,6 @@ test("an attachment opens with the entries that use it", async () => {
 
 test("config opens the settings page and back returns to the list", async () => {
   const { user, router, tree } = await openFiles();
-  await user.click(tree.getByRole("button", { name: "data" }));
   await user.click(await tree.findByRole("link", { name: "config.md" }));
 
   expect(await screen.findByText("Instellingen")).toBeInTheDocument();

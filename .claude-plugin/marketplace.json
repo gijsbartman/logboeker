@@ -8,7 +8,7 @@
     {
       "name": "logboeker",
       "source": "./plugins/logboeker",
-      "description": "Claude Code skills for an Open-ICT logbook vault: daily check-in and check-out, Jira stories, evidence overviews, progress checks and LEF criteria."
+      "description": "Claude Code skills for an Open-ICT logbook vault: setup, semester roadmap, daily check-in and check-out, Jira stories, evidence overviews, progress advice and LEF criteria."
     }
   ]
 }

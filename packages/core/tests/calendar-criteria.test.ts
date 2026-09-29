@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { configSchema, parseCriteria, semesterWeeks, sprintWeek, weekRange, workdays } from "../src";
+import { configSchema, parseConfig, parseCriteria, semesterWeeks, sprintWeek, weekRange, workdays } from "../src";
 
 const config = configSchema.parse({ semesterstart: "2026-09-08", sprintlengte_weken: 2 });
 
@@ -11,6 +11,13 @@ test.each([
   ["2026-09-22", { sprint: 2, week: 3 }],
 ])("sprint and week for %s", (date, expected) => {
   expect(sprintWeek(date, config)).toEqual(expected);
+});
+
+test("empty config fields count as not set", () => {
+  const parsed = parseConfig("---\ncode_repo:\nsemesterstart:\nsprintlengte_weken:\nsemester: 5\n---\n");
+  expect(parsed).toMatchObject({ semester: 5, sprintlengte_weken: 2 });
+  expect(parsed.code_repo).toBeUndefined();
+  expect(parsed.semesterstart).toBeUndefined();
 });
 
 test("no sprint before the semester or without a start date", () => {

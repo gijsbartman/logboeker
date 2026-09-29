@@ -12,15 +12,18 @@ Installers for macOS (universal), Windows and Linux are attached to each [GitHub
 
 ```
 my-vault/
-├── data/
-│   ├── config.md            # student name, semester start, sprint length
-│   └── json/
-│       └── vaardigheden.json
+├── config.md                # student, project, semester, sprint length, tracker
+├── project.md               # project description, used by the Claude skills
+├── data/                    # LEF criteria and project sources, written by the Claude skills
+│   ├── json/
+│   │   └── vaardigheden.json
+│   ├── markdown/
+│   └── project/
 └── logboek/
     ├── daily/               # one entry per day, e.g. 2026-09-08.md
     ├── evidence/            # standalone pieces of evidence
     ├── files/               # attachments
-    └── roadmap.md           # semester planning
+    └── roadmap.md           # semester roadmap: planning, ambition and target levels
 ```
 
 A complete example lives in [fixtures/vault](fixtures/vault).

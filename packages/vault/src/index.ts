@@ -24,11 +24,10 @@ import {
 } from "@logboeker/core";
 
 export const PATHS = {
-  config: "data/config.md",
+  config: "config.md",
   criteria: "data/json/vaardigheden.json",
   roadmap: "logboek/roadmap.md",
   files: "logboek/files",
-  extracted: "logboek/files/.extracted",
 } as const;
 
 export const REQUIRED_PATHS = [PATHS.config, ENTRY_DIRS.log, ENTRY_DIRS.bewijs] as const;
@@ -96,16 +95,6 @@ export async function loadVault(fs: VaultFs): Promise<Vault> {
   const roadmap = roadmapSource === null ? EMPTY_ROADMAP : parseRoadmap(roadmapSource, config);
   const files = listed.filter((name) => !name.startsWith("."));
 
-  // A missing or unreadable cache only costs search results, never the vault.
-  const extracted = new Map(
-    await Promise.all(
-      files.map(async (name) => {
-        const text = await fs.readText(`${PATHS.extracted}/${name}.txt`).catch(() => null);
-        return [name, text ?? ""] as const;
-      }),
-    ),
-  );
-
   const resolver = createResolver(entries);
   const gepland = new Set(roadmap.items.flatMap((item) => (item.doel ? [item.doel] : [])));
   const doelen = [...gepland, ...byFrequency(entries.flatMap((e) => e.doelen)).filter((d) => !gepland.has(d))];
@@ -119,7 +108,7 @@ export async function loadVault(fs: VaultFs): Promise<Vault> {
     config,
     entries,
     resolver,
-    search: createSearchIndex(entries, (name) => extracted.get(name) ?? ""),
+    search: createSearchIndex(entries),
     criteria: criteriaSource ? parseCriteria(JSON.parse(criteriaSource)) : {},
     roadmap,
     files,
@@ -151,7 +140,7 @@ export async function scaffoldVault(fs: WritableVaultFs, config: NewVaultConfig)
   if (await fs.exists(PATHS.config)) throw new Error("Deze map bevat al een logboek");
   const fields = configSchema.parse(config);
 
-  await Promise.all([PATHS.files, ...Object.values(ENTRY_DIRS), "data"].map((dir) => fs.mkdir(dir)));
+  await Promise.all([PATHS.files, ...Object.values(ENTRY_DIRS)].map((dir) => fs.mkdir(dir)));
   await Promise.all([
     fs.writeText(PATHS.config, updateFrontmatter(CONFIG_BODY, fields)),
     fs.writeText(PATHS.roadmap, ROADMAP_TEMPLATE),
